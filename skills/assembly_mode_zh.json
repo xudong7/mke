@@ -1,0 +1,18 @@
+{
+  "name": "assembly_mode_zh",
+  "description_zh": "识别介孔二氧化硅的组装方式（EISA、溶胶-凝胶、两相法、微乳液等）。",
+  "router_signals": [
+    "EISA",
+    "evaporation induced self-assembly",
+    "EIAA",
+    "sol-gel",
+    "sol–gel",
+    "Stöber",
+    "cyclohexane",
+    "toluene",
+    "TMB",
+    "biphase",
+    "微乳液"
+  ],
+  "prompt_block": "【Skill：组装方式判断】\n在属于“软模板法，需要完整分析”的前提下，判断并记录“组装方式”：\n- 若出现“evaporation induced self-assembly (EISA)”等字样，且以挥发性有机溶剂（如乙醇、THF）为主并经历明显挥发步骤，则标注为“EISA”；\n- 若为单一水/水-醇相的 TEOS 溶胶-凝胶体系，无油相，则标注为“溶胶-凝胶法”；\n- 若存在水相 + 不溶于水的油相（环己烷、甲苯、TMB 等），且明确保持双相/biphase，则标注为“溶胶-凝胶法（两相法）”；\n- 若存在油相且搅拌速度很高等典型微乳液特征，但未明确写两相，则标注为“溶胶-凝胶法（微乳液）”。"
+}

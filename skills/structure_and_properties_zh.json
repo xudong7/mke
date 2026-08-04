@@ -1,0 +1,22 @@
+{
+  "name": "structure_and_properties_zh",
+  "description_zh": "提取介孔结构类型、比表面积、孔径分布、形貌及其他关键变量。",
+  "router_signals": [
+    "BET surface area",
+    "pore size",
+    "pore diameter",
+    "pore volume",
+    "p6mm",
+    "Ia3d",
+    "Ia3̅d",
+    "2D hexagonal",
+    "cubic",
+    "lamellar",
+    "nanoparticles",
+    "nanofibers",
+    "nanorods",
+    "bulk",
+    "mesoporous"
+  ],
+  "prompt_block": "【Skill：结构与性能参数提取】\n请抽取：\n1）“介孔结构”：如二维六方（p6mm）、立方（Ia3̅d）、层状、蠕虫状等；\n2）“比表面积”：通常为 BET 比表面积，包含数值与单位 m²/g；\n3）“孔径”：所有报告的孔径及其分布，如有多个孔径峰需全部列出；\n4）“产物形态”：判断为块体或纳米材料；若为纳米材料，给出形状（纳米球、棒、纤维等）及典型尺寸；\n5）“合成温度”：系统列出所有阶段的温度与时间（合成、老化、水热、干燥、焙烧），不得合并为范围；\n6）“其他变量”：包括搅拌速率、孔壁结构、密度等对本文很重要的参数。"
+}

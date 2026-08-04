@@ -1,0 +1,31 @@
+{
+  "name": "screening_soft_template_zh",
+  "description_zh": "判断文献是否属于软模板协同组装、预合成纳米颗粒复合结构或自模板/硬模板，并决定是否进行详细抽取。",
+  "router_signals": [
+    "Fe3O4",
+    "CdS",
+    "@",
+    "&",
+    "core-shell",
+    "Janus",
+    "asymmetric",
+    "anisotropic",
+    "hard template",
+    "self-template",
+    "自模板",
+    "硬模板",
+    "p(GMA-co-EDMA)",
+    "RF",
+    "p@TEPA",
+    "surfactant",
+    "表面活性剂",
+    "Pluronic",
+    "CTAB",
+    "P123",
+    "F127",
+    "block copolymer",
+    "PS-b-PAA",
+    "PS-b-PEO"
+  ],
+  "prompt_block": "【Skill：合成体系筛选（软模板 / 预合成纳米颗粒 / 自模板或硬模板）】\n请根据文献内容判断该篇文章属于以下哪一类：\n1）软模板法（表面活性剂–硅源协同组装）——需要完整详细抽取；\n2）预合成纳米颗粒参与形成复合结构（如 Fe3O4@nSiO2@mSiO2，CdS&mSiO2 等）——只记录“组成”和“结构”，不进行具体参数抽取；\n3）自模板/硬模板法——只记录“组装方式”为“自模板”或“硬模板”，不进行具体参数抽取。\n并在每条结果中增加字段“分析类型”，值为：\n- 软模板法：\"软模板法，完整分析\"；\n- 预合成纳米颗粒复合结构：\"预合成纳米颗粒复合结构，仅简单记录\"；\n- 自模板/硬模板：\"自模板/硬模板，仅记录方法\"。"
+}

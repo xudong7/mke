@@ -1,0 +1,14 @@
+{
+  "name": "table_extraction_zh",
+  "description_zh": "从文献表格中逐行提取样品数据的规则。",
+  "router_signals": [
+    "Table",
+    "table",
+    "Table 1",
+    "Table 2",
+    "|",
+    "Sample",
+    "BET surface area"
+  ],
+  "prompt_block": "【Skill：表格数据逐行提取】\n当文献中出现表格（Table 1, Table 2 等）时，请将表格中每一行样品单独作为一条 result 输出。\n每一行对应一个样品名称（如 S2_E, S3_C, S4_C, S5_C, S6_C, SBA-1 等），不得合并。\n..."
+}

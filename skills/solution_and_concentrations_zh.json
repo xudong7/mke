@@ -1,0 +1,22 @@
+{
+  "name": "solution_and_concentrations_zh",
+  "description_zh": "提取溶剂体系、pH/酸碱、表面活性剂、硅源、盐的种类及浓度。",
+  "router_signals": [
+    "CTAB",
+    "P123",
+    "F127",
+    "Pluronic",
+    "PS-b-PEO",
+    "block copolymer",
+    "TEOS",
+    "TMOS",
+    "sodium silicate",
+    "Na2SiO3",
+    "HCl",
+    "H2SO4",
+    "acetic acid",
+    "NH4OH",
+    "NaOH"
+  ],
+  "prompt_block": "【Skill：溶液组成与浓度提取】\n请特别关注并抽取：\n1）“溶剂体系”：列出水、乙醇、THF、环己烷、甲苯、TMB 等溶剂，尽量给出体积比（v/v）；\n2）“pH值_酸碱浓度”：优先记录 pH，其次记录酸/碱的浓度、加入量，并按“添加量/总溶液体积”给出 mL/mL 或 mg/mL；含有酸/碱的体系不得填“00”；\n3）“表面活性剂种类”：标明 CTAB、P123、F127、嵌段共聚物（PS-b-PEO 等）、其他表面活性剂；对于作为模板使用的嵌段共聚物，也视为表面活性剂；\n4）“表面活性剂浓度”：对每种表面活性剂，按添加量/总溶液体积给出 mg/mL，无法计算时给出原始配方并说明；\n5）“硅/钛源种类_浓度”：列出 TEOS、TMOS、硅酸钠等硅源（及可能的钛源），按 TEOS/TMOS 用 mL/mL，固体硅源用 mg/mL；\n6）“盐种类_浓度”：对所有盐类，给出 mg/mL。"
+}
