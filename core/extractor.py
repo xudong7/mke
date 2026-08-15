@@ -23,17 +23,20 @@ class MesoporousExtractor:
         self.model_name = model_name
         self.skill_manager = skill_manager
 
-    def extract_from_text(self, text: str):
+    def extract_from_text(self, text: str, routing: dict | None = None):
         """
         对单篇文献文本进行抽取，返回 JSON 中的 results 列表。
+
+        routing: 可选。传入已由 route_paper 算好的路由结果时跳过重新路由，
+                 便于后端将"路由"与"主抽取"拆成两个独立步骤。
         """
         if not text or len(text.strip()) < 100:
             return []
 
         text = truncate_references(text)
 
-        # A0：路由 agent
-        routing = route_paper(text, self.client, self.model_name)
+        # A0：路由 agent（传入 routing 时不再调用 LLM 路由）
+        routing = routing if routing is not None else route_paper(text, self.client, self.model_name)
         analysis_type = routing.get("analysis_type", "soft_template_full")
         selected_skills = routing.get("selected_skills", [])
         route_reason = routing.get("reason_zh", "")
