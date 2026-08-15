@@ -199,36 +199,93 @@ body {
   min-height: 0;
 }
 
-/* 左：论文浏览器（PDF 阅读器） */
-.pane-left {
-  width: 46%;
-  min-width: 420px;
+/* ================= 三栏布局 ================= */
+.sidebar-left {
+  width: 280px;
+  min-width: 240px;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  background: var(--surface-2);
+  background: var(--surface);
+  position: relative;
 }
-.pane-right {
+.sidebar-right {
+  width: 520px;
+  min-width: 400px;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  position: relative;
+}
+.sidebar-toggle {
+  position: absolute;
+  top: 10px;
+  right: 8px;
+  z-index: 20;
+  width: 22px;
+  height: 22px;
+  line-height: 18px;
+  text-align: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 14px;
+  user-select: none;
+}
+.sidebar-left .sidebar-toggle {
+  right: 8px;
+  left: auto;
+}
+.sidebar-toggle:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+/* 折叠后的细条 */
+.sidebar-rail {
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: 14px;
+  user-select: none;
+  flex-shrink: 0;
+}
+.sidebar-right + .sidebar-rail,
+.sidebar-rail:last-of-type {
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
+.sidebar-rail:hover {
+  background: var(--gray-100);
+  color: var(--text);
+}
+.pane-center {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  background: var(--surface-2);
 }
 
-/* ================= 左面板：论文列表 ================= */
+/* ================= 左栏：论文列表 ================= */
 .paper-browser {
   display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
 }
 .paper-list {
-  width: 240px;
-  min-width: 200px;
-  border-right: 1px solid var(--border);
-  background: var(--surface);
   display: flex;
   flex-direction: column;
+  border-bottom: 1px solid var(--border);
+  max-height: 55%;
 }
 .paper-list-header {
   display: flex;
@@ -287,6 +344,12 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+.paper-empty {
+  color: var(--text-3);
+  font-size: 13px;
+  padding: 16px 10px;
+  text-align: center;
 }
 .pdf-badge {
   padding: 0 5px;
@@ -387,14 +450,73 @@ body {
   color: transparent;
 }
 
-/* 批注高亮层 */
-.annotation-highlight {
-  position: absolute;
-  background: var(--signal-yellow-soft);
-  outline: 1px solid var(--signal-yellow);
-  border-radius: 2px;
-  pointer-events: none;
-  z-index: 5;
+/* ================= 运行历史 ================= */
+.run-history {
+  padding: 10px 12px;
+  overflow-y: auto;
+}
+.run-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.run-history-empty {
+  color: var(--text-3);
+  font-size: 12.5px;
+  padding: 6px 0;
+}
+.run-history-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: var(--surface);
+}
+.run-history-item.current {
+  border-color: var(--gray-500);
+  background: var(--gray-100);
+}
+.run-history-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.run-history-time {
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+.run-history-steps {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.step-chip {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+}
+.step-chip.status-done {
+  color: var(--signal-green);
+  border-color: var(--signal-green);
+}
+.step-chip.status-error {
+  color: var(--signal-red);
+  border-color: var(--signal-red);
+}
+.step-chip.status-running {
+  color: var(--signal-yellow);
+  border-color: var(--signal-yellow);
+}
+.run-history-actions {
+  display: flex;
+  gap: 6px;
 }
 
 /* 文本预览（无 PDF 论文） */
@@ -474,54 +596,118 @@ body {
   margin-left: auto;
 }
 
-/* 步骤卡 */
-.step-card {
+/* 横向时间轴 */
+.timeline {
+  margin-bottom: 12px;
+}
+.timeline-track {
+  display: flex;
+  align-items: flex-start;
+}
+.timeline-segment {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+.timeline-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  min-width: 72px;
+}
+.timeline-node:hover {
+  background: var(--surface-2);
+}
+.timeline-node.active {
+  border-color: var(--border-strong);
+  background: var(--gray-100);
+}
+.timeline-node .dot {
+  width: 14px;
+  height: 14px;
+}
+.timeline-node.status-pending .dot {
+  background: var(--gray-300);
+  color: var(--gray-300);
+}
+.timeline-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+.timeline-duration {
+  font-size: 11px;
+}
+.timeline-lock {
+  font-size: 10px;
+  color: var(--text-3);
+}
+.timeline-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--gray-300);
+  margin: 0 2px 22px;
+}
+.timeline-connector.done {
+  background: var(--signal-green);
+}
+/* 时间轴详情区 */
+.timeline-detail {
+  margin-top: 10px;
   border: 1px solid var(--border);
   border-left-width: 3px;
   border-radius: var(--radius);
   background: var(--surface);
   padding: 10px 12px;
 }
-.step-card.status-pending {
+.timeline-detail.status-pending {
   border-left-color: var(--gray-300);
-  opacity: 0.75;
+  opacity: 0.8;
 }
-.step-card.status-running {
+.timeline-detail.status-running {
   border-left-color: var(--signal-yellow);
 }
-.step-card.status-done {
+.timeline-detail.status-done {
   border-left-color: var(--signal-green);
 }
-.step-card.status-error {
+.timeline-detail.status-error {
   border-left-color: var(--signal-red);
 }
-.step-card-head {
+.timeline-detail-head {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.step-card-title {
+.timeline-detail-title {
+  font-weight: 600;
+}
+.timeline-detail-desc {
+  font-size: 12px;
+  color: var(--text-2);
   flex: 1;
   min-width: 0;
 }
-.step-card-title > div:first-child {
-  font-weight: 600;
-}
-.step-card-desc {
-  font-size: 12px;
-  color: var(--text-2);
-}
-.step-card-actions {
+.timeline-detail-actions {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
 }
-.step-duration {
+.run-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  font-size: 11px;
   color: var(--text-2);
-}
-.step-running {
-  color: var(--signal-yellow);
+  background: var(--surface);
 }
 .step-skipped {
   margin-top: 8px;
@@ -608,6 +794,91 @@ body {
 }
 .results-row .row-num {
   color: var(--text-3);
+}
+.results-row.has-annotation {
+  border-left: 3px solid var(--signal-yellow);
+}
+.results-row.flash {
+  animation: row-flash 1.5s ease-out;
+}
+@keyframes row-flash {
+  0% {
+    background: var(--signal-yellow-soft);
+  }
+  100% {
+    background: transparent;
+  }
+}
+.row-index {
+  font-weight: 600;
+}
+.anno-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--signal-yellow);
+  margin: 0 4px;
+}
+.anno-add {
+  padding: 0 5px;
+  font-size: 10.5px;
+  margin-left: 2px;
+}
+.results-empty {
+  color: var(--text-3);
+  font-size: 13px;
+  padding: 10px 0;
+}
+.results-edit-row td {
+  background: var(--surface-2);
+  padding: 10px 14px;
+}
+/* 字段级批注 */
+.annotatable-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.flag-btn {
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+.flag-btn:hover {
+  color: var(--signal-yellow);
+  border-color: var(--signal-yellow);
+}
+.detail-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.detail-field {
+  font-size: 12.5px;
+}
+.field-edit-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--signal-yellow);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-top: 10px;
+}
+.field-edit-bar input {
+  flex: 1;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font: inherit;
+}
+.annotation-item-time {
+  font-size: 11px;
+  margin-top: 4px;
 }
 .results-detail-row td {
   background: var(--surface-2);

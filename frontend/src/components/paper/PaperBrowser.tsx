@@ -1,42 +1,31 @@
-/* PaperBrowser.tsx — 左面板：论文列表 + PDF 阅读器 / 文本预览 */
-import { useEffect, useRef } from "react";
-import type { Annotation, Paper, PendingSelection } from "../../types";
+/* PaperBrowser.tsx — 左侧栏：论文列表 + 上传 + 历史解析结果 */
+import type { Paper, RunSummary } from "../../types";
 import { PaperList } from "./PaperList";
-import { PdfViewer, type PdfViewerHandle } from "./PdfViewer";
-import { TextViewer } from "./TextViewer";
+import { RunHistory } from "./RunHistory";
 
 interface Props {
   papers: Paper[];
   selected: Paper | null;
-  /** 论文解析文本（懒加载，可能为空） */
-  text: string;
-  annotations: Annotation[];
+  runs: RunSummary[];
+  currentRunId: string | null;
+  busy: boolean;
   onSelectPaper: (p: Paper) => void;
   onUploaded: () => void;
-  onSelectText: (sel: PendingSelection) => void;
-  /** 批注列表点击 → 跳转到 PDF 对应页 */
-  onJumpRequest: { page: number; token: number } | null;
+  onLoadRun: (runId: string) => void;
+  onRerunRun: () => void;
 }
 
 export function PaperBrowser({
   papers,
   selected,
-  text,
-  annotations,
+  runs,
+  currentRunId,
+  busy,
   onSelectPaper,
   onUploaded,
-  onSelectText,
-  onJumpRequest,
+  onLoadRun,
+  onRerunRun,
 }: Props) {
-  const pdfRef = useRef<PdfViewerHandle>(null);
-
-  // 外部（批注列表）请求跳页
-  useEffect(() => {
-    if (onJumpRequest && selected?.has_pdf) {
-      pdfRef.current?.jumpToPage(onJumpRequest.page);
-    }
-  }, [onJumpRequest, selected?.has_pdf]);
-
   return (
     <div className="paper-browser">
       <PaperList
@@ -45,23 +34,13 @@ export function PaperBrowser({
         onSelect={onSelectPaper}
         onUploaded={onUploaded}
       />
-      <div className="paper-viewer-pane">
-        {!selected && <div className="viewer-empty">从左侧选择一篇论文，或上传 PDF</div>}
-        {selected && selected.has_pdf && (
-          <PdfViewer
-            ref={pdfRef}
-            paperId={selected.id}
-            annotations={annotations}
-            onSelect={onSelectText}
-          />
-        )}
-        {selected && !selected.has_pdf && text && (
-          <TextViewer text={text} paperId={selected.id} onSelect={onSelectText} />
-        )}
-        {selected && !selected.has_pdf && !text && (
-          <div className="viewer-loading">正在加载文本…</div>
-        )}
-      </div>
+      <RunHistory
+        runs={runs}
+        currentRunId={currentRunId}
+        busy={busy}
+        onLoad={onLoadRun}
+        onRerun={onRerunRun}
+      />
     </div>
   );
 }
