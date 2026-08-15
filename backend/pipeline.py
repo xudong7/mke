@@ -7,7 +7,6 @@ LLM 调用为阻塞式，端点用同步 def（走 FastAPI 线程池，不阻塞
 from __future__ import annotations
 
 import time
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel

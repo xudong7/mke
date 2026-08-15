@@ -1,5 +1,5 @@
 /* usePipeline.ts — 5 步流水线状态机：①解析 → ②路由 → ③抽取 → ④引用 → ⑤结构化 */
-import { useCallback, useReducer } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import type {
   ExtractRecord,
   ParseStepData,
@@ -105,6 +105,17 @@ export interface UsePipelineOptions {
 
 export function usePipeline({ paperId, text, hasPdf }: UsePipelineOptions) {
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
+
+  // corpus 论文（无原始 PDF）：解析步骤自动置为跳过态，解锁后续步骤
+  useEffect(() => {
+    if (paperId && !hasPdf) {
+      dispatch({
+        type: "skip",
+        id: "parse",
+        reason: "该论文为语料库既有解析文本（无原始 PDF），跳过版面重建。",
+      });
+    }
+  }, [paperId, hasPdf]);
 
   const isStepReady = useCallback(
     (id: StepId): boolean => {
