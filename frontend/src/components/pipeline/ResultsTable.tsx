@@ -1,8 +1,8 @@
-/* ResultsTable.tsx — 最终抽取结果表：关键列 + 可展开完整记录（字段引用 / *_结构化 渲染） */
-import { useState } from "react";
-import type { ExtractRecord } from "../../types";
+/* ResultsTable.tsx — 抽取结果表：关键列 + 行/字段级批注（不改原结果）+ 记录定位 */
+import { useEffect, useState } from "react";
+import type { Annotation, ExtractRecord } from "../../types";
 
-const COLUMNS: Array<keyof ExtractRecord> = [
+const COLUMNS: string[] = [
   "分析类型",
   "组装方式",
   "表面活性剂种类",
@@ -14,70 +14,208 @@ const COLUMNS: Array<keyof ExtractRecord> = [
   "产物形态",
 ];
 
+/** 批注目标（记录级或字段级） */
+export interface AnnotationTarget {
+  record_index: number;
+  field?: string | null;
+  value_snapshot?: string | null;
+}
+
+interface Props {
+  records: ExtractRecord[];
+  annotations: Annotation[];
+  onSaveAnnotation: (target: AnnotationTarget, note: string) => Promise<void>;
+  recordJump: { index: number; token: number } | null;
+}
+
 function cellText(v: unknown): string {
   if (v == null) return "00";
   return String(v).slice(0, 120);
 }
 
-export function ResultsTable({ records }: { records: ExtractRecord[] }) {
+export function ResultsTable({ records, annotations, onSaveAnnotation, recordJump }: Props) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [editing, setEditing] = useState<AnnotationTarget | null>(null);
+  const [note, setNote] = useState("");
+  const [flashIdx, setFlashIdx] = useState<number | null>(null);
+
+  /* 批注列表点击 → 滚动到记录 + 闪烁 */
+  useEffect(() => {
+    if (recordJump === null) return;
+    const el = document.querySelector<HTMLElement>(`[data-record-index="${recordJump.index}"]`);
+    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    setFlashIdx(recordJump.index);
+    setOpenIdx(recordJump.index);
+    const t = setTimeout(() => setFlashIdx(null), 1800);
+    return () => clearTimeout(t);
+  }, [recordJump]);
+
+  const startEdit = (target: AnnotationTarget) => {
+    setEditing(target);
+    setNote("");
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    await onSaveAnnotation(editing, note.trim());
+    setEditing(null);
+    setNote("");
+  };
 
   return (
     <div className="results-section">
       <div className="results-header">
         <span>抽取结果（{records.length} 条记录）</span>
-        <span className="mono text-2">点击行展开完整字段</span>
+        <span className="mono text-2">可为行或字段添加批注（不影响原结果）</span>
       </div>
-      <div className="results-table-wrap">
-        <table className="results-table">
-          <thead>
-            <tr>
-              <th className="row-num">#</th>
-              {COLUMNS.map((c) => (
-                <th key={c}>{c}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {records.map((r, i) => (
-              <RowExpander
-                key={i}
-                index={i}
-                record={r}
-                open={openIdx === i}
-                onToggle={() => setOpenIdx(openIdx === i ? null : i)}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {records.length === 0 && (
+        <div className="results-empty">运行「③ 主抽取」后显示结果。</div>
+      )}
+      {records.length > 0 && (
+        <div className="results-table-wrap">
+          <table className="results-table">
+            <thead>
+              <tr>
+                <th className="row-num">#</th>
+                {COLUMNS.map((c) => (
+                  <th key={c}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((r, i) => {
+                const rowAnnos = annotations.filter((a) => a.record_index === i);
+                return (
+                  <RowBlock
+                    key={i}
+                    index={i}
+                    record={r}
+                    rowAnnos={rowAnnos}
+                    open={openIdx === i}
+                    editing={editing?.record_index === i && !editing.field ? editing : null}
+                    note={note}
+                    onNoteChange={setNote}
+                    onToggle={() => setOpenIdx(openIdx === i ? null : i)}
+                    onStartEdit={startEdit}
+                    onCancelEdit={() => setEditing(null)}
+                    onSaveEdit={saveEdit}
+                    flash={flashIdx === i}
+                  />
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* 字段级编辑：独立于行的编辑器（在行下方由 RowBlock 渲染编辑行） */}
+      {editing?.field && (
+        <div className="field-edit-bar">
+          <span className="mono text-2">
+            字段批注：{editing.field}
+            {editing.value_snapshot ? ` · ${editing.value_snapshot}` : ""}
+          </span>
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="批注内容…"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void saveEdit();
+              if (e.key === "Escape") setEditing(null);
+            }}
+          />
+          <button className="btn btn-sm btn-primary" onClick={() => void saveEdit()}>
+            保存
+          </button>
+          <button className="btn btn-sm" onClick={() => setEditing(null)}>
+            取消
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-function RowExpander({
+function RowBlock({
   index,
   record,
+  rowAnnos,
   open,
+  editing,
+  note,
+  onNoteChange,
   onToggle,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+  flash,
 }: {
   index: number;
   record: ExtractRecord;
+  rowAnnos: Annotation[];
   open: boolean;
+  editing: AnnotationTarget | null;
+  note: string;
+  onNoteChange: (v: string) => void;
   onToggle: () => void;
+  onStartEdit: (t: AnnotationTarget) => void;
+  onCancelEdit: () => void;
+  onSaveEdit: () => void;
+  flash: boolean;
 }) {
+  const hasAnno = rowAnnos.length > 0;
   return (
     <>
-      <tr className="results-row" onClick={onToggle}>
-        <td className="row-num mono">{index + 1}</td>
+      <tr
+        className={`results-row${hasAnno ? " has-annotation" : ""}${flash ? " flash" : ""}`}
+        data-record-index={index}
+        onClick={onToggle}
+      >
+        <td className="row-num">
+          <span className="row-index">{index + 1}</span>
+          {hasAnno && <span className="anno-dot" title={`${rowAnnos.length} 条批注`} />}
+          <button
+            className="btn btn-sm anno-add"
+            onClick={(e) => {
+              e.stopPropagation();
+              onStartEdit({ record_index: index });
+            }}
+            title="为这条记录添加批注"
+          >
+            ＋批注
+          </button>
+        </td>
         {COLUMNS.map((c) => (
           <td key={c}>{cellText(record[c])}</td>
         ))}
       </tr>
+      {editing && !editing.field && (
+        <tr className="results-edit-row">
+          <td colSpan={COLUMNS.length + 1}>
+            <div className="annotation-editor card">
+              <textarea
+                value={note}
+                onChange={(e) => onNoteChange(e.target.value)}
+                placeholder={`批注记录 #${index + 1}（原结果不会被修改）…`}
+                rows={2}
+                autoFocus
+              />
+              <div className="editor-actions">
+                <button className="btn btn-sm" onClick={onCancelEdit}>
+                  取消
+                </button>
+                <button className="btn btn-sm btn-primary" onClick={() => void onSaveEdit()}>
+                  保存批注
+                </button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
       {open && (
         <tr className="results-detail-row">
           <td colSpan={COLUMNS.length + 1}>
-            <RecordDetail record={record} />
+            <RecordDetail record={record} index={index} onAnnotate={onStartEdit} />
           </td>
         </tr>
       )}
@@ -85,7 +223,43 @@ function RowExpander({
   );
 }
 
-function RecordDetail({ record }: { record: ExtractRecord }) {
+/* 字段级批注入口：值旁小旗标 */
+function AnnotatableValue({
+  label,
+  value,
+  onAnnotate,
+}: {
+  label: string;
+  value: unknown;
+  onAnnotate: () => void;
+}) {
+  const text = cellText(value);
+  return (
+    <span className="annotatable-value">
+      <span className="mini-k mono">{label}:</span> {text}
+      <button
+        className="btn btn-sm flag-btn"
+        onClick={(e) => {
+          e.stopPropagation();
+          onAnnotate();
+        }}
+        title={`为字段「${label}」添加批注`}
+      >
+        ⚑
+      </button>
+    </span>
+  );
+}
+
+function RecordDetail({
+  record,
+  index,
+  onAnnotate,
+}: {
+  record: ExtractRecord;
+  index: number;
+  onAnnotate: (t: AnnotationTarget) => void;
+}) {
   const structuredTables: Array<[string, Array<Record<string, unknown>>]> = [
     ["合成温度_结构化", record["合成温度_结构化"] as Array<Record<string, unknown>>],
     ["比表面积_结构化", record["比表面积_结构化"] as Array<Record<string, unknown>>],
@@ -96,6 +270,25 @@ function RecordDetail({ record }: { record: ExtractRecord }) {
 
   return (
     <div className="record-detail">
+      <div className="detail-subtitle">关键字段（可逐字段批注）</div>
+      <div className="detail-fields">
+        {COLUMNS.map((c) => (
+          <div key={c} className="detail-field">
+            <AnnotatableValue
+              label={c}
+              value={record[c]}
+              onAnnotate={() =>
+                onAnnotate({
+                  record_index: index,
+                  field: c,
+                  value_snapshot: String(record[c] ?? "00").slice(0, 120),
+                })
+              }
+            />
+          </div>
+        ))}
+      </div>
+
       {structuredTables.length > 0 && (
         <div className="detail-structured">
           {structuredTables.map(([title, rows]) => (
@@ -107,7 +300,17 @@ function RecordDetail({ record }: { record: ExtractRecord }) {
                     <tr key={i}>
                       {Object.entries(row).map(([k, v]) => (
                         <td key={k}>
-                          <span className="mini-k mono">{k}:</span> {cellText(v)}
+                          <AnnotatableValue
+                            label={k}
+                            value={v}
+                            onAnnotate={() =>
+                              onAnnotate({
+                                record_index: index,
+                                field: `${title}.${k}`,
+                                value_snapshot: String(v ?? "00").slice(0, 120),
+                              })
+                            }
+                          />
                         </td>
                       ))}
                     </tr>
