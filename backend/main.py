@@ -18,6 +18,7 @@ from . import deps
 from .annotations import router as annotations_router
 from .papers import router as papers_router
 from .pipeline import router as pipeline_router
+from .runs import papers_runs_router, router as runs_router
 
 app = FastAPI(title="MKE Web API", description="介孔材料文献知识自动抽取系统 Web 接口")
 
@@ -32,6 +33,8 @@ app.add_middleware(
 app.include_router(papers_router, prefix="/api")
 app.include_router(pipeline_router, prefix="/api")
 app.include_router(annotations_router, prefix="/api")
+app.include_router(runs_router, prefix="/api")
+app.include_router(papers_runs_router, prefix="/api")
 
 
 @app.get("/api/health")
