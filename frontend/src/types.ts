@@ -57,26 +57,15 @@ export interface StepResult<T> {
 
 /* ---- 抽取记录 ---- */
 
-export interface AnchorRect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
-export interface Anchor {
-  rects: AnchorRect[];
-  page_width: number;
-  page_height: number;
-}
-
+/** 结果批注：挂 (run, record_index, 可选字段)，不影响原结果 */
 export interface Annotation {
   id: string;
+  run_id: string;
   paper_id: string;
-  page: number | null;
-  quote: string;
+  record_index: number;
+  field?: string | null;
   note: string;
-  anchor: Anchor;
+  value_snapshot?: string | null;
   created_at: string;
 }
 
@@ -110,6 +99,7 @@ export interface ExtractRecord {
 
 export type StepId = "parse" | "route" | "extract" | "cite" | "structurize";
 export type StepStatus = "pending" | "running" | "done" | "error";
+export type RunStatus = "running" | "done" | "failed";
 
 export interface PipelineStep {
   id: StepId;
@@ -124,9 +114,26 @@ export interface PipelineStep {
   skipped?: boolean;
 }
 
-/** 选中文本 → 待创建的批注 */
-export interface PendingSelection {
-  page: number | null;
-  quote: string;
-  rects: AnchorRect[];
+/* ---- 运行历史 ---- */
+
+export interface RunStepState {
+  status: StepStatus;
+  payload?: unknown;
+  took_ms?: number | null;
+  warning?: string | null;
+}
+
+export interface RunSummary {
+  id: string;
+  paper_id: string;
+  created_at: string;
+  updated_at: string;
+  status: RunStatus;
+  record_count: number;
+  step_statuses: Record<StepId, StepStatus>;
+}
+
+export interface RunDetail extends RunSummary {
+  steps: Record<StepId, RunStepState>;
+  records: ExtractRecord[];
 }

@@ -21,6 +21,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 CORPUS_DIR = DATA_DIR / "new_papers_info-100"
 UPLOADS_DIR = DATA_DIR / "uploads"
 ANNOTATIONS_DIR = DATA_DIR / "annotations"
+RUNS_DIR = DATA_DIR / "runs"
 SKILLS_DIR = PROJECT_ROOT / "skills"
 
 _client: OpenAI | None = None

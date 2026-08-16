@@ -55,16 +55,30 @@ def main():
     print("6. parse(upload): columns =", pr2["data"]["column_stats"],
           "| filtered =", pr2["data"]["header_footer_filtered_count"])
 
-    # 7. 批注 CRUD 往返
-    ann = call("POST", f"/papers/{urllib.parse.quote(up['paper_id'])}/annotations",
-               {"page": 1, "quote": "sample quote", "note": "测试批注",
-                "anchor": {"rects": [{"x": 0.1, "y": 0.2, "w": 0.3, "h": 0.02}]}})
-    print("7. annotation created:", ann["id"][:8], "| note:", ann["note"])
-    listed = call("GET", f"/papers/{urllib.parse.quote(up['paper_id'])}/annotations")
-    print("   list:", len(listed), "条")
+    # 7. run 历史 + 结果批注 CRUD 往返
+    run = call("POST", "/runs", {"paper_id": up["paper_id"]})
+    rid = run["id"]
+    print("7. run created:", rid[:8], "| status:", run["status"])
+    call("PUT", f"/runs/{rid}/steps/parse", {"status": "done", "took_ms": 120})
+    call("PUT", f"/runs/{rid}/steps/extract",
+         {"status": "done", "payload": [{"分析类型": "软模板法，完整分析"}]})
+    run_full = call("GET", f"/runs/{rid}")
+    print("   run 详情: status =", run_full["status"],
+          "| records 镜像 =", len(run_full["records"]))
+    history = call("GET", f"/papers/{urllib.parse.quote(up['paper_id'])}/runs")
+    print("   论文历史:", len(history), "条 | 首条步骤:", history[0]["step_statuses"])
+    ann = call("POST", f"/runs/{rid}/annotations",
+               {"record_index": 0, "field": "比表面积", "note": "数值存疑",
+                "value_snapshot": "258 m²/g"})
+    print("   批注 created:", ann["id"][:8], "| field:", ann["field"], "| paper_id:", ann["paper_id"])
+    listed = call("GET", f"/runs/{rid}/annotations")
+    print("   run 批注列表:", len(listed), "条")
     call("DELETE", f"/annotations/{ann['id']}")
-    listed2 = call("GET", f"/papers/{urllib.parse.quote(up['paper_id'])}/annotations")
+    listed2 = call("GET", f"/runs/{rid}/annotations")
     print("   delete 后:", len(listed2), "条")
+    call("PUT", f"/runs/{rid}/steps/route", {"status": "error"})
+    run_failed = call("GET", f"/runs/{rid}")
+    print("   步骤置 error 后 run 状态:", run_failed["status"])
 
     # 8. route（真实 LLM 调用，短文本）
     route = call("POST", "/pipeline/route", {"text": text[:1500]})

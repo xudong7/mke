@@ -8,6 +8,10 @@ import type {
   RoutingResult,
   StepResult,
   ExtractRecord,
+  RunDetail,
+  RunSummary,
+  StepId,
+  StepStatus,
 } from "../types";
 
 // 普通调用 30s；流水线 LLM 步骤可能耗时更长（见各端点单独配置）
@@ -110,22 +114,46 @@ export async function runStructurize(
   return data;
 }
 
-/* ---- 批注 ---- */
-export async function fetchAnnotations(paperId: string): Promise<Annotation[]> {
-  const { data } = await api.get<Annotation[]>(
-    `/papers/${encodeURIComponent(paperId)}/annotations`,
+/* ---- 运行历史 ---- */
+export async function createRun(paperId: string): Promise<RunSummary> {
+  const { data } = await api.post<RunSummary>("/runs", { paper_id: paperId });
+  return data;
+}
+
+export async function fetchRuns(paperId: string): Promise<RunSummary[]> {
+  const { data } = await api.get<RunSummary[]>(
+    `/papers/${encodeURIComponent(paperId)}/runs`,
   );
   return data;
 }
 
-export async function createAnnotation(
-  paperId: string,
-  body: { page: number | null; quote: string; note: string; anchor: Annotation["anchor"] },
+export async function fetchRun(runId: string): Promise<RunDetail> {
+  const { data } = await api.get<RunDetail>(`/runs/${runId}`);
+  return data;
+}
+
+export async function updateRunStep(
+  runId: string,
+  step: StepId,
+  body: { status: StepStatus; payload?: unknown; took_ms?: number; warning?: string },
+): Promise<RunSummary> {
+  const { data } = await api.put<RunSummary>(`/runs/${runId}/steps/${step}`, body, {
+    timeout: 10_000,
+  });
+  return data;
+}
+
+/* ---- 结果批注（挂 run） ---- */
+export async function fetchRunAnnotations(runId: string): Promise<Annotation[]> {
+  const { data } = await api.get<Annotation[]>(`/runs/${runId}/annotations`);
+  return data;
+}
+
+export async function createRunAnnotation(
+  runId: string,
+  body: { record_index: number; field?: string | null; note: string; value_snapshot?: string | null },
 ): Promise<Annotation> {
-  const { data } = await api.post<Annotation>(
-    `/papers/${encodeURIComponent(paperId)}/annotations`,
-    body,
-  );
+  const { data } = await api.post<Annotation>(`/runs/${runId}/annotations`, body);
   return data;
 }
 

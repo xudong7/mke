@@ -55,10 +55,13 @@ uv run python main.py
 
 ## Web 界面
 
-系统附带一个 Web 界面(黑白灰主题,红黄绿仅用于状态信号):
+系统附带一个 Web 界面(黑白灰主题,红黄绿仅用于状态信号),三栏可折叠布局:
 
-- **左面板**:PDF 论文浏览器 — 上传真实 PDF 后经 pdf.js 渲染(缩放/翻页/文本选中),或浏览语料库中无 PDF 的文本预览
-- **右面板**:解析流程看板 — ① PDF 解析(本地版面重建:两栏排序/页眉页脚过滤) → ② 路由分类 → ③ 主抽取 → ④ 字段引用 → ⑤ 数值结构化,每步展示中间结果;选中论文文本可添加批注(持久化到 `data/annotations/`)
+- **左栏**:已上传 PDF 论文列表 + 上传按钮 + 每篇论文的**历史解析结果**(查看/重新运行,可折叠)
+- **中栏**:PDF 论文浏览器 — pdf.js 渲染(devicePixelRatio 高清/缩放/适应宽度/翻页),语料库中无 PDF 的论文为文本预览
+- **右栏**:解析流程**横向时间轴看板** — ① PDF 解析(本地版面重建:两栏排序/页眉页脚过滤) → ② 路由分类 → ③ 主抽取 → ④ 字段引用 → ⑤ 数值结构化,点击节点查看该步中间结果;下方结果表支持**结果批注**(行/字段级,挂载于运行记录,不修改原结果),可折叠
+
+**运行历史**:每次执行流水线自动保存到后端(`data/runs/`),刷新/跳转不丢失;可从左侧历史选择查看任意一次运行结果,或一键重新运行(新开记录)。
 
 ```bash
 # 1. 启动后端(FastAPI,默认 :8000)
@@ -95,14 +98,16 @@ demo/
 │   ├── parser.py            # PDF 轻量版面重建(PyMuPDF):栏检测/页眉页脚过滤
 │   ├── papers.py            # 论文列表 / 全文 / PDF 服务 / 上传解析
 │   ├── pipeline.py          # 流水线 5 步无状态端点(parse/route/extract/cite/structurize)
-│   ├── annotations.py       # 批注 CRUD(JSON 文件,data/annotations/)
+│   ├── runs.py              # 运行历史持久化(JSON 文件,data/runs/)
+│   ├── annotations.py       # 结果批注 CRUD(挂 run,data/annotations/)
 │   └── smoke_test.py        # 后端冒烟测试脚本
 ├── frontend/                # Web 前端(React 18 + Vite + TS)
-│   └── src/
-│       ├── components/paper/      # 论文列表 / pdf.js 阅读器 / 文本预览
-│       ├── components/pipeline/   # 流程看板 / 步骤卡 / 结果表格
-│       ├── components/annotation/ # 批注交互面板
-│       └── hooks/                 # usePipeline / useAnnotations
+│   ├── src/
+│   │   ├── components/paper/      # 论文列表 / pdf.js 阅读器 / 文本预览 / 运行历史
+│   │   ├── components/pipeline/   # 时间轴看板 / 结果表格(可批注)
+│   │   ├── components/annotation/ # 结果批注面板
+│   │   └── hooks/                 # usePipeline(运行同步) / useAnnotations
+│   └── e2e/                 # Playwright 端到端验证脚本
 ├── skills/                  # 可组合的技能模块(JSON)
 ├── data/                    # 输入文献与输出结果(git 忽略)
 └── pyproject.toml / uv.lock # uv 依赖管理

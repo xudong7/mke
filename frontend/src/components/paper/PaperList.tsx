@@ -1,4 +1,4 @@
-/* PaperList.tsx — 左侧论文列表 + PDF 上传 */
+/* PaperList.tsx — 左侧论文列表（只显示已上传的 PDF）+ 上传按钮 */
 import { useRef } from "react";
 import type { Paper } from "../../types";
 import { uploadPdf } from "../../api/client";
@@ -22,13 +22,10 @@ export function PaperList({ papers, selectedId, onSelect, onUploaded }: Props) {
     }
   };
 
-  const groups: Record<string, Paper[]> = { corpus: [], upload: [] };
-  for (const p of papers) groups[p.source]?.push(p);
-
   return (
     <div className="paper-list">
       <div className="paper-list-header">
-        <span className="paper-list-title">论文库</span>
+        <span className="paper-list-title">已上传论文</span>
         <button className="btn btn-sm" onClick={() => fileRef.current?.click()}>
           上传 PDF
         </button>
@@ -45,16 +42,10 @@ export function PaperList({ papers, selectedId, onSelect, onUploaded }: Props) {
         />
       </div>
       <div className="paper-list-body">
-        {groups.upload.length > 0 && (
-          <>
-            <div className="paper-group-label">已上传（{groups.upload.length}）</div>
-            {groups.upload.map((p) => (
-              <PaperItem key={p.id} paper={p} selected={p.id === selectedId} onSelect={onSelect} />
-            ))}
-          </>
+        {papers.length === 0 && (
+          <div className="paper-empty">尚未上传论文。点击「上传 PDF」开始。</div>
         )}
-        <div className="paper-group-label">语料库（{groups.corpus.length}）</div>
-        {groups.corpus.map((p) => (
+        {papers.map((p) => (
           <PaperItem key={p.id} paper={p} selected={p.id === selectedId} onSelect={onSelect} />
         ))}
       </div>
@@ -79,12 +70,11 @@ function PaperItem({
       title={paper.id}
     >
       <div className="paper-item-meta mono">
-        {paper.year || "—"} · {paper.source === "upload" ? "上传" : "语料"}
+        {paper.year || "—"} · 上传
       </div>
       <div className="paper-item-title">{paper.title || paper.id}</div>
       <div className="paper-item-sub mono">
         {paper.first_author} · {sizeKb} KB
-        {paper.has_pdf && <span className="pdf-badge">PDF</span>}
       </div>
     </button>
   );

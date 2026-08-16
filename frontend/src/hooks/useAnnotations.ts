@@ -1,30 +1,30 @@
-/* useAnnotations.ts — 批注列表状态与持久化 */
+/* useAnnotations.ts — 结果批注状态与持久化（按 run 键控） */
 import { useCallback, useEffect, useState } from "react";
-import type { Annotation, Anchor } from "../types";
+import type { Annotation } from "../types";
 import {
-  createAnnotation,
+  createRunAnnotation,
   deleteAnnotation,
-  fetchAnnotations,
+  fetchRunAnnotations,
 } from "../api/client";
 
-export function useAnnotations(paperId: string | null) {
+export function useAnnotations(runId: string | null) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!paperId) {
+    if (!runId) {
       setAnnotations([]);
       return;
     }
     setLoading(true);
     try {
-      setAnnotations(await fetchAnnotations(paperId));
+      setAnnotations(await fetchRunAnnotations(runId));
     } catch {
       setAnnotations([]);
     } finally {
       setLoading(false);
     }
-  }, [paperId]);
+  }, [runId]);
 
   useEffect(() => {
     void refresh();
@@ -32,16 +32,16 @@ export function useAnnotations(paperId: string | null) {
 
   const add = useCallback(
     async (body: {
-      page: number | null;
-      quote: string;
+      record_index: number;
+      field?: string | null;
       note: string;
-      anchor: Anchor;
+      value_snapshot?: string | null;
     }) => {
-      if (!paperId) return;
-      const created = await createAnnotation(paperId, body);
+      if (!runId) return;
+      const created = await createRunAnnotation(runId, body);
       setAnnotations((prev) => [...prev, created]);
     },
-    [paperId],
+    [runId],
   );
 
   const remove = useCallback(async (id: string) => {
