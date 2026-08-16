@@ -53,11 +53,31 @@ uv run python main.py
 
 > `data/` 目录(文献全文与输出)不纳入 git 版本管理,请通过其他渠道备份。
 
+## Web 界面
+
+系统附带一个 Web 界面(黑白灰主题,红黄绿仅用于状态信号):
+
+- **左面板**:PDF 论文浏览器 — 上传真实 PDF 后经 pdf.js 渲染(缩放/翻页/文本选中),或浏览语料库中无 PDF 的文本预览
+- **右面板**:解析流程看板 — ① PDF 解析(本地版面重建:两栏排序/页眉页脚过滤) → ② 路由分类 → ③ 主抽取 → ④ 字段引用 → ⑤ 数值结构化,每步展示中间结果;选中论文文本可添加批注(持久化到 `data/annotations/`)
+
+```bash
+# 1. 启动后端(FastAPI,默认 :8000)
+uv run uvicorn backend.main:app --reload --port 8000
+
+# 2a. 开发模式(前端热更新,:5173, /api 自动代理)
+cd frontend && npm install && npm run dev
+
+# 2b. 生产模式(构建产物由后端单端口托管,:8000)
+cd frontend && npm run build && open http://localhost:8000
+```
+
+> ②–⑤ 步调用 LLM,消耗 API token;PDF 解析为纯本地计算。
+
 ## 目录结构
 
 ```
 demo/
-├── main.py                  # 入口:批量处理 → 规范化 → 导出
+├── main.py                  # 入口:批量处理 → 规范化 → 导出(CLI)
 ├── config.py                # 路径与模型配置(密钥走环境变量)
 ├── core/
 │   ├── extractor.py         # 主抽取器:路由分发 + 批量处理
@@ -69,6 +89,20 @@ demo/
 │   ├── structurizer_agent.py# Agent⑤ 数值结构化(逐条调用)
 │   ├── postprocess.py       # 规则格式化:补全字段,缺失填 "00"
 │   └── knowledge_agent.py   # Agent⑥ 合成规律/结构-性能关系总结(待接线)
+├── backend/                 # Web API(FastAPI)
+│   ├── main.py              # 入口:CORS、路由挂载、生产模式静态托管(SPA fallback)
+│   ├── deps.py              # 路径常量与惰性 OpenAI 客户端(不 import config.py)
+│   ├── parser.py            # PDF 轻量版面重建(PyMuPDF):栏检测/页眉页脚过滤
+│   ├── papers.py            # 论文列表 / 全文 / PDF 服务 / 上传解析
+│   ├── pipeline.py          # 流水线 5 步无状态端点(parse/route/extract/cite/structurize)
+│   ├── annotations.py       # 批注 CRUD(JSON 文件,data/annotations/)
+│   └── smoke_test.py        # 后端冒烟测试脚本
+├── frontend/                # Web 前端(React 18 + Vite + TS)
+│   └── src/
+│       ├── components/paper/      # 论文列表 / pdf.js 阅读器 / 文本预览
+│       ├── components/pipeline/   # 流程看板 / 步骤卡 / 结果表格
+│       ├── components/annotation/ # 批注交互面板
+│       └── hooks/                 # usePipeline / useAnnotations
 ├── skills/                  # 可组合的技能模块(JSON)
 ├── data/                    # 输入文献与输出结果(git 忽略)
 └── pyproject.toml / uv.lock # uv 依赖管理
