@@ -1,9 +1,10 @@
-/* PipelineKanban.tsx — 流程看板容器：时间轴 + 结果表 + 批注桥接 */
-import { useMemo } from "react";
+/* PipelineKanban.tsx — 流程看板：时间轴/结果表 + 批注 tab（看板 | 批注(n)） */
+import { useMemo, useState } from "react";
 import type { Annotation, ExtractRecord, PipelineStep, RunStatus, StepId } from "../../types";
 import { PipelineTimeline } from "./PipelineTimeline";
 import { ResultsTable } from "./ResultsTable";
 import { LLMCostBanner } from "./LLMCostBanner";
+import { AnnotationPanel } from "../annotation/AnnotationPanel";
 
 interface Props {
   steps: PipelineStep[];
@@ -16,12 +17,14 @@ interface Props {
   onRunStep: (id: StepId) => void;
   onRunAll: () => void;
   onReset: () => void;
-  /* 结果批注（v2） */
+  /* 结果批注（v2/v3） */
   annotations: Annotation[];
   onSaveAnnotation: (
     target: { record_index: number; field?: string | null; value_snapshot?: string | null },
     note: string,
   ) => Promise<void>;
+  onDeleteAnnotation: (id: string) => Promise<void>;
+  onJumpToRecord: (index: number) => void;
   recordJump: { index: number; token: number } | null;
 }
 
@@ -38,8 +41,11 @@ export function PipelineKanban({
   onReset,
   annotations,
   onSaveAnnotation,
+  onDeleteAnnotation,
+  onJumpToRecord,
   recordJump,
 }: Props) {
+  const [tab, setTab] = useState<"board" | "annotations">("board");
   const anyRunning = runStatus === "running";
   const anyDone = steps.some((s) => s.status === "done");
 
@@ -71,16 +77,48 @@ export function PipelineKanban({
         </div>
       </div>
 
-      <LLMCostBanner llmConfigured={llmConfigured} structurizeEstimate={structurizeEstimate} />
+      <div className="kanban-tabs">
+        <button
+          className={`kanban-tab${tab === "board" ? " active" : ""}`}
+          onClick={() => setTab("board")}
+        >
+          看板
+        </button>
+        <button
+          className={`kanban-tab${tab === "annotations" ? " active" : ""}`}
+          onClick={() => setTab("annotations")}
+        >
+          批注
+          <span className={`count${annotations.length > 0 ? " has" : ""}`}>
+            ({annotations.length})
+          </span>
+        </button>
+      </div>
 
-      <PipelineTimeline steps={steps} isStepReady={isStepReady} onRunStep={onRunStep} />
-
-      <ResultsTable
-        records={records}
-        annotations={annotations}
-        onSaveAnnotation={onSaveAnnotation}
-        recordJump={recordJump}
-      />
+      {tab === "board" ? (
+        <>
+          <LLMCostBanner
+            llmConfigured={llmConfigured}
+            structurizeEstimate={structurizeEstimate}
+          />
+          <PipelineTimeline steps={steps} isStepReady={isStepReady} onRunStep={onRunStep} />
+          <ResultsTable
+            records={records}
+            annotations={annotations}
+            onSaveAnnotation={onSaveAnnotation}
+            recordJump={recordJump}
+          />
+        </>
+      ) : (
+        <AnnotationPanel
+          annotations={annotations}
+          onDelete={onDeleteAnnotation}
+          onJumpToRecord={(i) => {
+            setTab("board"); // 切回看板，让滚动闪烁可见
+            onJumpToRecord(i);
+          }}
+        />
+      )}
     </div>
   );
 }

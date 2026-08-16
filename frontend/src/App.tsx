@@ -1,4 +1,4 @@
-/* App.tsx — 三栏布局：左=论文列表+运行历史（可折叠），中=PDF 查看器，右=流程看板+批注（可折叠） */
+/* App.tsx — 三区布局（左/中/右均可折叠）：左=论文列表+运行历史，中=PDF 查看器，右=流程看板+批注 */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { HealthInfo, Paper, RunSummary } from "./types";
 import { errText, fetchHealth, fetchPaperText, fetchPapers, fetchRun, fetchRuns } from "./api/client";
@@ -7,7 +7,6 @@ import { useAnnotations } from "./hooks/useAnnotations";
 import { PaperBrowser } from "./components/paper/PaperBrowser";
 import { PaperViewer } from "./components/paper/PaperViewer";
 import { PipelineKanban } from "./components/pipeline/PipelineKanban";
-import { AnnotationPanel } from "./components/annotation/AnnotationPanel";
 
 export default function App() {
   const [health, setHealth] = useState<HealthInfo | null>(null);
@@ -17,6 +16,7 @@ export default function App() {
   const [text, setText] = useState<string>("");
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [leftOpen, setLeftOpen] = useState(true);
+  const [centerOpen, setCenterOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   /** 批注列表点击 → 滚动到对应记录 */
   const [recordJump, setRecordJump] = useState<{ index: number; token: number } | null>(null);
@@ -131,63 +131,84 @@ export default function App() {
         </div>
       </header>
 
-      <main className="app-main">
+      <main className={`app-main${centerOpen ? "" : " center-collapsed"}`}>
         {leftOpen ? (
-          <aside className="sidebar-left">
-            <div className="sidebar-toggle" onClick={() => setLeftOpen(false)} title="折叠论文库">
-              ‹
+          <>
+            <div
+              className="edge-strip edge-strip-left"
+              onClick={() => setLeftOpen(false)}
+              title="折叠论文库"
+              role="button"
+            >
+              <span className="edge-strip-grip" />
             </div>
-            <PaperBrowser
-              papers={uploadPapers}
-              selected={selected}
-              runs={runs}
-              currentRunId={pipeline.runId}
-              busy={pipeline.runStatus === "running"}
-              onSelectPaper={(p) => void selectPaper(p)}
-              onUploaded={handleUploaded}
-              onLoadRun={(rid) => void handleLoadRun(rid)}
-              onRerunRun={handleRerunRun}
-            />
-          </aside>
+            <aside className="sidebar-left">
+              <PaperBrowser
+                papers={uploadPapers}
+                selected={selected}
+                runs={runs}
+                currentRunId={pipeline.runId}
+                busy={pipeline.runStatus === "running"}
+                onSelectPaper={(p) => void selectPaper(p)}
+                onUploaded={handleUploaded}
+                onLoadRun={(rid) => void handleLoadRun(rid)}
+                onRerunRun={handleRerunRun}
+              />
+            </aside>
+          </>
         ) : (
           <div className="sidebar-rail" onClick={() => setLeftOpen(true)} title="展开论文库">
             ›
           </div>
         )}
 
-        <section className="pane-center">
-          <PaperViewer paper={selected} text={text} />
-          {papersLoading && <div className="viewer-loading">正在加载论文库…</div>}
-        </section>
+        {centerOpen && (
+          <section className="pane-center">
+            <PaperViewer paper={selected} text={text} />
+            {papersLoading && <div className="viewer-loading">正在加载论文库…</div>}
+          </section>
+        )}
+        <div
+          className={centerOpen ? "edge-strip edge-strip-center" : "sidebar-rail rail-center"}
+          onClick={() => setCenterOpen((v) => !v)}
+          title={centerOpen ? "折叠论文预览" : "展开论文预览"}
+          role="button"
+        >
+          {centerOpen ? <span className="edge-strip-grip" /> : "‹"}
+        </div>
 
         {rightOpen ? (
-          <aside className="sidebar-right">
-            <div className="sidebar-toggle" onClick={() => setRightOpen(false)} title="折叠流程看板">
-              ›
+          <>
+            <aside className="sidebar-right">
+              <PipelineKanban
+                steps={pipeline.steps}
+                records={pipeline.records}
+                paperLabel={paperLabel}
+                runId={pipeline.runId}
+                runStatus={pipeline.runStatus}
+                llmConfigured={health?.llm_configured ?? false}
+                isStepReady={pipeline.isStepReady}
+                onRunStep={(id) => void pipeline.runStep(id)}
+                onRunAll={() => void pipeline.runAll()}
+                onReset={pipeline.reset}
+                annotations={annotationsApi.annotations}
+                onSaveAnnotation={handleSaveAnnotation}
+                onDeleteAnnotation={(id) => annotationsApi.remove(id)}
+                onJumpToRecord={handleJumpToRecord}
+                recordJump={recordJump}
+              />
+            </aside>
+            <div
+              className="edge-strip edge-strip-right"
+              onClick={() => setRightOpen(false)}
+              title="折叠流程看板"
+              role="button"
+            >
+              <span className="edge-strip-grip" />
             </div>
-            <PipelineKanban
-              steps={pipeline.steps}
-              records={pipeline.records}
-              paperLabel={paperLabel}
-              runId={pipeline.runId}
-              runStatus={pipeline.runStatus}
-              llmConfigured={health?.llm_configured ?? false}
-              isStepReady={pipeline.isStepReady}
-              onRunStep={(id) => void pipeline.runStep(id)}
-              onRunAll={() => void pipeline.runAll()}
-              onReset={pipeline.reset}
-              annotations={annotationsApi.annotations}
-              onSaveAnnotation={handleSaveAnnotation}
-              recordJump={recordJump}
-            />
-            <AnnotationPanel
-              annotations={annotationsApi.annotations}
-              onDelete={(id) => annotationsApi.remove(id)}
-              onJumpToRecord={handleJumpToRecord}
-            />
-          </aside>
+          </>
         ) : (
-          <div className="sidebar-rail" onClick={() => setRightOpen(true)} title="展开流程看板">
+          <div className="sidebar-rail rail-right" onClick={() => setRightOpen(true)} title="展开流程看板">
             ‹
           </div>
         )}

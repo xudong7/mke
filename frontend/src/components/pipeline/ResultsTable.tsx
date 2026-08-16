@@ -1,6 +1,7 @@
-/* ResultsTable.tsx — 抽取结果表：关键列 + 行/字段级批注（不改原结果）+ 记录定位 */
+/* ResultsTable.tsx — 抽取结果表：关键列 + 行/字段级批注（hover 触发 + 浮层，不改原结果） */
 import { useEffect, useState } from "react";
 import type { Annotation, ExtractRecord } from "../../types";
+import { AnnotationPopover } from "../annotation/AnnotationPopover";
 
 const COLUMNS: string[] = [
   "分析类型",
@@ -35,9 +36,12 @@ function cellText(v: unknown): string {
 
 export function ResultsTable({ records, annotations, onSaveAnnotation, recordJump }: Props) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
-  const [editing, setEditing] = useState<AnnotationTarget | null>(null);
   const [note, setNote] = useState("");
   const [flashIdx, setFlashIdx] = useState<number | null>(null);
+  const [popover, setPopover] = useState<{
+    target: AnnotationTarget;
+    anchor: { x: number; y: number };
+  } | null>(null);
 
   /* 批注列表点击 → 滚动到记录 + 闪烁 */
   useEffect(() => {
@@ -50,23 +54,29 @@ export function ResultsTable({ records, annotations, onSaveAnnotation, recordJum
     return () => clearTimeout(t);
   }, [recordJump]);
 
-  const startEdit = (target: AnnotationTarget) => {
-    setEditing(target);
+  /** 打开浮层（锚定触发按钮中心/底部） */
+  const openPopover = (target: AnnotationTarget, e: React.MouseEvent<HTMLElement>) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setPopover({ target, anchor: { x: r.left + r.width / 2, y: r.bottom } });
     setNote("");
   };
 
-  const saveEdit = async () => {
-    if (!editing) return;
-    await onSaveAnnotation(editing, note.trim());
-    setEditing(null);
+  const closePopover = () => {
+    setPopover(null);
     setNote("");
+  };
+
+  const savePopover = () => {
+    if (!popover) return;
+    void onSaveAnnotation(popover.target, note.trim());
+    closePopover();
   };
 
   return (
     <div className="results-section">
       <div className="results-header">
         <span>抽取结果（{records.length} 条记录）</span>
-        <span className="mono text-2">可为行或字段添加批注（不影响原结果）</span>
+        <span className="mono text-2">悬停行或字段可添加批注（不影响原结果）</span>
       </div>
       {records.length === 0 && (
         <div className="results-empty">运行「③ 主抽取」后显示结果。</div>
@@ -92,13 +102,8 @@ export function ResultsTable({ records, annotations, onSaveAnnotation, recordJum
                     record={r}
                     rowAnnos={rowAnnos}
                     open={openIdx === i}
-                    editing={editing?.record_index === i && !editing.field ? editing : null}
-                    note={note}
-                    onNoteChange={setNote}
                     onToggle={() => setOpenIdx(openIdx === i ? null : i)}
-                    onStartEdit={startEdit}
-                    onCancelEdit={() => setEditing(null)}
-                    onSaveEdit={saveEdit}
+                    onAnnotate={openPopover}
                     flash={flashIdx === i}
                   />
                 );
@@ -108,29 +113,15 @@ export function ResultsTable({ records, annotations, onSaveAnnotation, recordJum
         </div>
       )}
 
-      {/* 字段级编辑：独立于行的编辑器（在行下方由 RowBlock 渲染编辑行） */}
-      {editing?.field && (
-        <div className="field-edit-bar">
-          <span className="mono text-2">
-            字段批注：{editing.field}
-            {editing.value_snapshot ? ` · ${editing.value_snapshot}` : ""}
-          </span>
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="批注内容…"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void saveEdit();
-              if (e.key === "Escape") setEditing(null);
-            }}
-          />
-          <button className="btn btn-sm btn-primary" onClick={() => void saveEdit()}>
-            保存
-          </button>
-          <button className="btn btn-sm" onClick={() => setEditing(null)}>
-            取消
-          </button>
-        </div>
+      {popover && (
+        <AnnotationPopover
+          target={popover.target}
+          anchor={popover.anchor}
+          note={note}
+          onNoteChange={setNote}
+          onSave={savePopover}
+          onCancel={closePopover}
+        />
       )}
     </div>
   );
@@ -141,26 +132,16 @@ function RowBlock({
   record,
   rowAnnos,
   open,
-  editing,
-  note,
-  onNoteChange,
   onToggle,
-  onStartEdit,
-  onCancelEdit,
-  onSaveEdit,
+  onAnnotate,
   flash,
 }: {
   index: number;
   record: ExtractRecord;
   rowAnnos: Annotation[];
   open: boolean;
-  editing: AnnotationTarget | null;
-  note: string;
-  onNoteChange: (v: string) => void;
   onToggle: () => void;
-  onStartEdit: (t: AnnotationTarget) => void;
-  onCancelEdit: () => void;
-  onSaveEdit: () => void;
+  onAnnotate: (t: AnnotationTarget, e: React.MouseEvent<HTMLElement>) => void;
   flash: boolean;
 }) {
   const hasAnno = rowAnnos.length > 0;
@@ -178,7 +159,7 @@ function RowBlock({
             className="btn btn-sm anno-add"
             onClick={(e) => {
               e.stopPropagation();
-              onStartEdit({ record_index: index });
+              onAnnotate({ record_index: index }, e);
             }}
             title="为这条记录添加批注"
           >
@@ -189,33 +170,10 @@ function RowBlock({
           <td key={c}>{cellText(record[c])}</td>
         ))}
       </tr>
-      {editing && !editing.field && (
-        <tr className="results-edit-row">
-          <td colSpan={COLUMNS.length + 1}>
-            <div className="annotation-editor card">
-              <textarea
-                value={note}
-                onChange={(e) => onNoteChange(e.target.value)}
-                placeholder={`批注记录 #${index + 1}（原结果不会被修改）…`}
-                rows={2}
-                autoFocus
-              />
-              <div className="editor-actions">
-                <button className="btn btn-sm" onClick={onCancelEdit}>
-                  取消
-                </button>
-                <button className="btn btn-sm btn-primary" onClick={() => void onSaveEdit()}>
-                  保存批注
-                </button>
-              </div>
-            </div>
-          </td>
-        </tr>
-      )}
       {open && (
         <tr className="results-detail-row">
           <td colSpan={COLUMNS.length + 1}>
-            <RecordDetail record={record} index={index} onAnnotate={onStartEdit} />
+            <RecordDetail record={record} index={index} onAnnotate={onAnnotate} />
           </td>
         </tr>
       )}
@@ -223,7 +181,7 @@ function RowBlock({
   );
 }
 
-/* 字段级批注入口：值旁小旗标 */
+/* 字段级批注入口：值旁小旗标（hover 显示） */
 function AnnotatableValue({
   label,
   value,
@@ -231,7 +189,7 @@ function AnnotatableValue({
 }: {
   label: string;
   value: unknown;
-  onAnnotate: () => void;
+  onAnnotate: (e: React.MouseEvent<HTMLElement>) => void;
 }) {
   const text = cellText(value);
   return (
@@ -241,7 +199,7 @@ function AnnotatableValue({
         className="btn btn-sm flag-btn"
         onClick={(e) => {
           e.stopPropagation();
-          onAnnotate();
+          onAnnotate(e);
         }}
         title={`为字段「${label}」添加批注`}
       >
@@ -258,7 +216,7 @@ function RecordDetail({
 }: {
   record: ExtractRecord;
   index: number;
-  onAnnotate: (t: AnnotationTarget) => void;
+  onAnnotate: (t: AnnotationTarget, e: React.MouseEvent<HTMLElement>) => void;
 }) {
   const structuredTables: Array<[string, Array<Record<string, unknown>>]> = [
     ["合成温度_结构化", record["合成温度_结构化"] as Array<Record<string, unknown>>],
@@ -277,12 +235,15 @@ function RecordDetail({
             <AnnotatableValue
               label={c}
               value={record[c]}
-              onAnnotate={() =>
-                onAnnotate({
-                  record_index: index,
-                  field: c,
-                  value_snapshot: String(record[c] ?? "00").slice(0, 120),
-                })
+              onAnnotate={(e) =>
+                onAnnotate(
+                  {
+                    record_index: index,
+                    field: c,
+                    value_snapshot: String(record[c] ?? "00").slice(0, 120),
+                  },
+                  e,
+                )
               }
             />
           </div>
@@ -303,12 +264,15 @@ function RecordDetail({
                           <AnnotatableValue
                             label={k}
                             value={v}
-                            onAnnotate={() =>
-                              onAnnotate({
-                                record_index: index,
-                                field: `${title}.${k}`,
-                                value_snapshot: String(v ?? "00").slice(0, 120),
-                              })
+                            onAnnotate={(e) =>
+                              onAnnotate(
+                                {
+                                  record_index: index,
+                                  field: `${title}.${k}`,
+                                  value_snapshot: String(v ?? "00").slice(0, 120),
+                                },
+                                e,
+                              )
                             }
                           />
                         </td>
