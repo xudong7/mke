@@ -57,7 +57,7 @@ with sync_playwright() as p:
 
     # 3. 侧栏折叠：左栏折叠 → PDF 区变宽
     center_before = page.locator(".pane-center").bounding_box()["width"]
-    page.locator(".sidebar-left .sidebar-toggle").click()
+    page.locator(".edge-strip-left").click()
     page.wait_for_timeout(600)
     center_after = page.locator(".pane-center").bounding_box()["width"]
     check("折叠左栏后 PDF 区变宽", center_after > center_before + 150,
@@ -70,9 +70,9 @@ with sync_playwright() as p:
           f"{center_restored:.0f} vs {center_before:.0f}")
 
     # 右栏折叠/恢复
-    right_rail = page.locator(".sidebar-right .sidebar-toggle")
-    if right_rail.count() > 0:
-        right_rail.click()
+    right_strip = page.locator(".edge-strip-right")
+    if right_strip.count() > 0:
+        right_strip.click()
         page.wait_for_timeout(400)
         check("右栏可折叠", page.locator(".kanban").count() == 0)
         page.locator(".sidebar-rail").last.click()
@@ -137,35 +137,43 @@ with sync_playwright() as p:
         ".step-chip.status-done").count() == 5)
     page.screenshot(path=str(SHOT_DIR / "07_rerun.png"))
 
-    # 8. 结果批注
+    # 8. 结果批注（v3：hover 触发 + 浮层 + tab）
     # 8a. 行级批注
+    page.locator(".results-row").first.hover()
+    page.wait_for_timeout(300)
     page.locator(".results-row").first.locator(".anno-add").click()
-    page.wait_for_selector(".results-edit-row textarea", timeout=5000)
-    page.locator(".results-edit-row textarea").fill("行级测试批注")
-    page.locator(".results-edit-row button", has_text="保存批注").click()
+    page.wait_for_selector(".annotation-popover textarea", timeout=5000)
+    page.locator(".annotation-popover textarea").fill("行级测试批注")
+    page.locator(".annotation-popover button", has_text="保存批注").click()
     page.wait_for_timeout(1200)
     check("行级批注保存", page.locator(".anno-dot").count() >= 1)
-    check("批注面板出现条目", page.locator(".annotation-item").count() >= 1)
     page.screenshot(path=str(SHOT_DIR / "08_row_annotation.png"))
 
     # 8b. 字段级批注
     page.locator(".results-row").first.click()  # 展开
     page.wait_for_selector(".detail-fields .flag-btn", timeout=5000)
+    page.locator(".detail-fields").first.hover()
+    page.wait_for_timeout(300)
     page.locator(".detail-fields .flag-btn").first.click()
-    page.wait_for_selector(".field-edit-bar input", timeout=5000)
-    page.locator(".field-edit-bar input").fill("字段级测试批注")
-    page.locator(".field-edit-bar button", has_text="保存").click()
+    page.wait_for_selector(".annotation-popover textarea", timeout=5000)
+    page.locator(".annotation-popover textarea").fill("字段级测试批注")
+    page.locator(".annotation-popover button", has_text="保存批注").click()
     page.wait_for_timeout(1200)
-    check("字段级批注保存", page.locator(".annotation-item").count() >= 2)
+    check("字段级批注保存", page.locator(".anno-dot").count() >= 1)
 
-    # 8c. 面板点击 → 记录定位（scroll/flash）
+    # 8c. tab 批注面板 → 点击定位（scroll/flash）
+    page.locator(".kanban-tab", has_text="批注").click()
+    page.wait_for_timeout(400)
+    check("批注 tab 显示列表", page.locator(".annotation-item").count() >= 2)
     page.locator(".annotation-item").last.click()
-    page.wait_for_timeout(800)
+    page.wait_for_timeout(1000)
     flash = page.locator(".results-row.flash").count()
     check("面板点击定位记录并闪烁", flash >= 1, f"flash={flash}")
     page.screenshot(path=str(SHOT_DIR / "09_annotation_flash.png"))
 
     # 8d. 删除批注
+    page.locator(".kanban-tab", has_text="批注").click()
+    page.wait_for_timeout(300)
     n_before = page.locator(".annotation-item").count()
     page.locator(".annotation-item-actions button", has_text="删除").first.click()
     page.wait_for_timeout(800)
@@ -180,7 +188,7 @@ with sync_playwright() as p:
         page.mouse.move(b["x"] + b["width"] / 2 + 30, b["y"] + b["height"] / 2, steps=10)
         page.mouse.up()
         page.wait_for_timeout(800)
-        check("PDF 文本选中不再弹批注框", page.locator(".annotation-editor").count() == 0)
+        check("PDF 文本选中不再弹批注框", page.locator(".annotation-popover").count() == 0)
 
     check("无页面 JS 错误", len(errors) == 0, "; ".join(errors[:3]))
     browser.close()
