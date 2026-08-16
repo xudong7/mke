@@ -1,6 +1,7 @@
 /* PipelineTimeline.tsx — 横向时间轴：5 步节点 + 连接线 + 步骤详情 */
 import { useState } from "react";
 import type { PipelineStep, StepId } from "../../types";
+import { StepDetail } from "./StepDetail";
 
 interface Props {
   steps: PipelineStep[];
@@ -81,11 +82,7 @@ export function PipelineTimeline({ steps, isStepReady, onRunStep }: Props) {
           {selected.warning && selected.status === "done" && (
             <div className="step-warning">{selected.warning}</div>
           )}
-          {selected.payload !== undefined && (
-            <div className="step-payload mono">
-              <pre>{JSON.stringify(selected.payload, null, 2)}</pre>
-            </div>
-          )}
+          {selected.payload !== undefined && <StepDetail step={selected} />}
         </div>
       )}
     </div>
