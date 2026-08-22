@@ -63,13 +63,19 @@ with sync_playwright() as p:
     page.wait_for_timeout(500)
     check("左栏恢复", page.locator(".sidebar-left").count() == 1)
 
-    # 右栏折叠（唯一竖条，位于中栏与看板之间）
+    # 聚焦模式（右栏常驻；右条 = 折叠左栏 + 右栏加宽）
+    kanban_before = page.locator(".sidebar-right").bounding_box()["width"]
     page.locator(".edge-strip-right").click()
     page.wait_for_timeout(500)
-    check("右栏折叠", page.locator(".kanban").count() == 0)
-    page.locator(".sidebar-rail").click()
+    check("聚焦：右栏常驻", page.locator(".kanban").count() > 0)
+    check("聚焦：左栏折叠", page.locator(".sidebar-left").count() == 0)
+    kanban_w = page.locator(".sidebar-right").bounding_box()["width"]
+    check("聚焦：右栏加宽", kanban_w > kanban_before + 100,
+          f"{kanban_before:.0f} → {kanban_w:.0f}")
+    page.screenshot(path=str(SHOT_DIR / "02_wide_mode.png"))
+    page.locator(".edge-strip-right").click()
     page.wait_for_timeout(500)
-    check("右栏恢复", page.locator(".kanban").count() > 0)
+    check("还原：左栏恢复", page.locator(".sidebar-left").count() == 1)
 
     # ============ 3. 页面滚动修复 ============
     page.locator(".paper-item").first.click()

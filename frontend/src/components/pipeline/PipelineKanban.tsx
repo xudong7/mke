@@ -60,13 +60,30 @@ export function PipelineKanban({
   return (
     <div className="kanban">
       <div className="kanban-header">
-        <span
-          className={`kanban-llm ${llmConfigured ? "ok" : "missing"}`}
-          title={llmConfigured ? `LLM 已配置 · 模型 ${llmModel ?? "未知"}` : "未配置 OPENAI_API_KEY，LLM 步骤不可用"}
-        >
-          <Cpu size={14} />
-        </span>
+        <div className="kanban-tabs">
+          <button
+            className={`kanban-tab${tab === "board" ? " active" : ""}`}
+            onClick={() => setTab("board")}
+          >
+            看板
+          </button>
+          <button
+            className={`kanban-tab${tab === "annotations" ? " active" : ""}`}
+            onClick={() => setTab("annotations")}
+          >
+            批注
+            <span className={`count${annotations.length > 0 ? " has" : ""}`}>
+              ({annotations.length})
+            </span>
+          </button>
+        </div>
         <div className="kanban-actions">
+          <span
+            className={`kanban-llm ${llmConfigured ? "ok" : "missing"}`}
+            title={llmConfigured ? `LLM 已配置 · 模型 ${llmModel ?? "未知"}` : "未配置 OPENAI_API_KEY，LLM 步骤不可用"}
+          >
+            <Cpu size={14} />
+          </span>
           {runId && (
             <span className={`run-badge mono status-${runStatus ?? "pending"}`}>
               run {runId.slice(0, 8)} · {runStatus}
@@ -80,24 +97,6 @@ export function PipelineKanban({
             全部运行
           </button>
         </div>
-      </div>
-
-      <div className="kanban-tabs">
-        <button
-          className={`kanban-tab${tab === "board" ? " active" : ""}`}
-          onClick={() => setTab("board")}
-        >
-          看板
-        </button>
-        <button
-          className={`kanban-tab${tab === "annotations" ? " active" : ""}`}
-          onClick={() => setTab("annotations")}
-        >
-          批注
-          <span className={`count${annotations.length > 0 ? " has" : ""}`}>
-            ({annotations.length})
-          </span>
-        </button>
       </div>
 
       {tab === "board" ? (

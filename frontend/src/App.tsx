@@ -1,5 +1,5 @@
 /* App.tsx — 三区布局（左/中/右均可折叠）：左=论文列表+运行历史，中=PDF 查看器，右=流程看板+批注 */
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { HealthInfo, Paper, RunSummary } from "./types";
 import { errText, fetchHealth, fetchPaperText, fetchPapers, fetchRun, fetchRuns } from "./api/client";
@@ -17,7 +17,8 @@ export default function App() {
   const [text, setText] = useState<string>("");
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [leftOpen, setLeftOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
+  /** 聚焦模式：折叠左栏 + 加宽右栏（右栏始终常驻） */
+  const [wideMode, setWideMode] = useState(false);
   /** 批注列表点击 → 滚动到对应记录 */
   const [recordJump, setRecordJump] = useState<{ index: number; token: number } | null>(null);
 
@@ -113,9 +114,16 @@ export default function App() {
 
   const uploadPapers = useMemo(() => papers.filter((p) => p.source === "upload"), [papers]);
 
+  /** 聚焦模式切换：进入 → 折叠左栏+加宽右栏；退出 → 还原 */
+  const toggleWide = () => {
+    const next = !wideMode;
+    setWideMode(next);
+    setLeftOpen(!next);
+  };
+
   return (
     <div className="app">
-      <main className="app-main">
+      <main className={`app-main${wideMode ? " wide" : ""}`}>
         {leftOpen ? (
           <>
             <aside className="sidebar-left">
@@ -138,7 +146,9 @@ export default function App() {
               role="button"
               aria-label="折叠论文库"
             >
-              <span className="edge-strip-grip" />
+              <span className="edge-strip-handle">
+                <span className="edge-strip-grip" />
+              </span>
             </div>
           </>
         ) : (
@@ -158,48 +168,34 @@ export default function App() {
           {papersLoading && <div className="viewer-loading">正在加载论文库…</div>}
         </section>
 
-        {rightOpen ? (
-          <>
-            <div
-              className="edge-strip edge-strip-right"
-              onClick={() => setRightOpen(false)}
-              title="折叠流程看板"
-              role="button"
-              aria-label="折叠流程看板"
-            >
-              <span className="edge-strip-grip" />
-            </div>
-            <aside className="sidebar-right">
-              <PipelineKanban
-                steps={pipeline.steps}
-                records={pipeline.records}
-                runId={pipeline.runId}
-                runStatus={pipeline.runStatus}
-                llmConfigured={health?.llm_configured ?? false}
-                llmModel={health?.model ?? null}
-                isStepReady={pipeline.isStepReady}
-                onRunStep={(id) => void pipeline.runStep(id)}
-                onRunAll={() => void pipeline.runAll()}
-                onReset={pipeline.reset}
-                annotations={annotationsApi.annotations}
-                onSaveAnnotation={handleSaveAnnotation}
-                onDeleteAnnotation={(id) => annotationsApi.remove(id)}
-                onJumpToRecord={handleJumpToRecord}
-                recordJump={recordJump}
-              />
-            </aside>
-          </>
-        ) : (
-          <div
-            className="sidebar-rail rail-right"
-            onClick={() => setRightOpen(true)}
-            title="展开流程看板"
-            role="button"
-            aria-label="展开流程看板"
-          >
-            <ChevronLeft size={14} />
-          </div>
-        )}
+        <div
+          className="edge-strip edge-strip-right"
+          onClick={toggleWide}
+          title="聚焦模式：折叠左栏、加宽结果面板"
+          role="button"
+          aria-label="聚焦模式：折叠左栏、加宽结果面板"
+        >
+          <span className="edge-strip-handle" />
+        </div>
+        <aside className="sidebar-right">
+          <PipelineKanban
+            steps={pipeline.steps}
+            records={pipeline.records}
+            runId={pipeline.runId}
+            runStatus={pipeline.runStatus}
+            llmConfigured={health?.llm_configured ?? false}
+            llmModel={health?.model ?? null}
+            isStepReady={pipeline.isStepReady}
+            onRunStep={(id) => void pipeline.runStep(id)}
+            onRunAll={() => void pipeline.runAll()}
+            onReset={pipeline.reset}
+            annotations={annotationsApi.annotations}
+            onSaveAnnotation={handleSaveAnnotation}
+            onDeleteAnnotation={(id) => annotationsApi.remove(id)}
+            onJumpToRecord={handleJumpToRecord}
+            recordJump={recordJump}
+          />
+        </aside>
       </main>
     </div>
   );

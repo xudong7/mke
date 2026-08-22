@@ -69,15 +69,18 @@ with sync_playwright() as p:
     check("左栏恢复", abs(center_restored - center_before) < 10,
           f"{center_restored:.0f} vs {center_before:.0f}")
 
-    # 右栏折叠/恢复
-    right_strip = page.locator(".edge-strip-right")
-    if right_strip.count() > 0:
-        right_strip.click()
-        page.wait_for_timeout(400)
-        check("右栏可折叠", page.locator(".kanban").count() == 0)
-        page.locator(".sidebar-rail").last.click()
-        page.wait_for_timeout(400)
-        check("右栏恢复", page.locator(".kanban").count() > 0)
+    # 聚焦模式：右栏常驻，右条切换（折叠左栏 + 加宽右栏）
+    kanban_before = page.locator(".sidebar-right").bounding_box()["width"]
+    page.locator(".edge-strip-right").click()
+    page.wait_for_timeout(400)
+    check("聚焦：右栏常驻", page.locator(".kanban").count() > 0)
+    check("聚焦：左栏折叠", page.locator(".sidebar-left").count() == 0)
+    kanban_w = page.locator(".sidebar-right").bounding_box()["width"]
+    check("聚焦：右栏加宽", kanban_w > kanban_before + 100,
+          f"{kanban_before:.0f} → {kanban_w:.0f}")
+    page.locator(".edge-strip-right").click()
+    page.wait_for_timeout(400)
+    check("还原：左栏恢复", page.locator(".sidebar-left").count() == 1)
 
     # 4. 时间轴渲染
     nodes = page.locator(".timeline-node")

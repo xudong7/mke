@@ -240,7 +240,7 @@ textarea:focus-visible {
   overflow-y: auto;
   position: relative;
 }
-/* 折叠手柄：各区域外侧边缘竖直居中的细条（flex item，不与内容重叠） */
+/* 折叠手柄：竖直居中一小块矩形（flex item，不与内容重叠） */
 .edge-strip {
   width: 14px;
   flex-shrink: 0;
@@ -248,28 +248,42 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface);
-  color: var(--text-3);
+  background: transparent;
   cursor: pointer;
   user-select: none;
-  transition: background 0.15s, color 0.15s;
 }
-.edge-strip:hover {
+.edge-strip-handle {
+  width: 11px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.edge-strip:hover .edge-strip-handle {
   background: var(--surface-2);
-  color: var(--text-2);
+  border-color: var(--gray-500);
 }
 .edge-strip-grip {
-  width: 3px;
-  height: 20px;
-  border-radius: 2px;
-  background: var(--gray-300);
+  width: 2px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--text-3);
   flex-shrink: 0;
+  transition: background 0.15s;
+}
+.edge-strip:hover .edge-strip-grip {
+  background: var(--text-2);
 }
 .edge-strip-left {
-  border-right: 1px solid var(--border);
+  border-right: 1px solid transparent;
 }
 .edge-strip-right {
-  border-left: 1px solid var(--border);
+  border-left: 1px solid transparent;
 }
 /* 折叠后的细条（与展开态手柄同一屏幕位置） */
 .sidebar-rail {
@@ -579,7 +593,13 @@ textarea:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  border-bottom: 1px solid var(--border);
   margin-bottom: 12px;
+}
+/* 聚焦模式：折叠左栏后右栏加宽 */
+.app-main.wide .sidebar-right {
+  width: 720px;
+  min-width: 640px;
 }
 .kanban-llm {
   display: inline-flex;
@@ -1089,17 +1109,16 @@ textarea:focus-visible {
 .annotation-popover .annotation-editor {
   margin: 0;
 }
-/* 看板 tab */
+/* 看板 tab（与动作同排） */
 .kanban-tabs {
   display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 10px;
+  gap: 2px;
+  align-self: stretch;
 }
 .kanban-tab {
   border: none;
   background: transparent;
-  padding: 6px 12px;
+  padding: 5px 12px 9px;
   font-size: 13px;
   color: var(--text-2);
   cursor: pointer;
