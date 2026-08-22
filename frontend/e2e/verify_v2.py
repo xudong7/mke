@@ -63,7 +63,7 @@ with sync_playwright() as p:
     check("折叠左栏后 PDF 区变宽", center_after > center_before + 150,
           f"{center_before:.0f} → {center_after:.0f}")
     page.screenshot(path=str(SHOT_DIR / "03_collapse_left.png"))
-    page.locator(".sidebar-rail").first.click()  # 恢复
+    page.locator(".panel-handle-float").click()  # 恢复
     page.wait_for_timeout(600)
     center_restored = page.locator(".pane-center").bounding_box()["width"]
     check("左栏恢复", abs(center_restored - center_before) < 10,

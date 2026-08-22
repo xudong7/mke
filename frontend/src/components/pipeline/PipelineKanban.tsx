@@ -1,10 +1,9 @@
 /* PipelineKanban.tsx — 流程看板：时间轴/结果表 + 批注 tab（看板 | 批注(n)） */
 import { Cpu, Play, RotateCcw } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { Annotation, ExtractRecord, PipelineStep, RunStatus, StepId } from "../../types";
 import { PipelineTimeline } from "./PipelineTimeline";
 import { ResultsTable } from "./ResultsTable";
-import { LLMCostBanner } from "./LLMCostBanner";
 import { AnnotationPanel } from "../annotation/AnnotationPanel";
 
 interface Props {
@@ -50,13 +49,6 @@ export function PipelineKanban({
   const anyRunning = runStatus === "running";
   const anyDone = steps.some((s) => s.status === "done");
 
-  // 步骤⑤ 时长预估：按记录数提示（逐条 LLM 调用）
-  const structurizeEstimate = useMemo(() => {
-    const n = records.length;
-    if (n === 0) return null;
-    return `约 ${Math.round(n * 30)}–${Math.round(n * 60)} 秒`;
-  }, [records.length]);
-
   return (
     <div className="kanban">
       <div className="kanban-header">
@@ -100,11 +92,7 @@ export function PipelineKanban({
       </div>
 
       {tab === "board" ? (
-        <>
-          <LLMCostBanner
-            llmConfigured={llmConfigured}
-            structurizeEstimate={structurizeEstimate}
-          />
+        <div className="kanban-board">
           <PipelineTimeline steps={steps} isStepReady={isStepReady} onRunStep={onRunStep} />
           <ResultsTable
             records={records}
@@ -112,7 +100,7 @@ export function PipelineKanban({
             onSaveAnnotation={onSaveAnnotation}
             recordJump={recordJump}
           />
-        </>
+        </div>
       ) : (
         <AnnotationPanel
           annotations={annotations}

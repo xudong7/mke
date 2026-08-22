@@ -65,8 +65,12 @@ with sync_playwright() as p:
     # 左栏折叠
     page.locator(".panel-handle-left").click()
     page.wait_for_timeout(500)
-    check("左栏折叠", page.locator(".sidebar-left").count() == 0 and page.locator(".sidebar-rail").count() >= 1)
-    page.locator(".sidebar-rail").first.click()
+    check("左栏折叠", page.locator(".sidebar-left").count() == 0
+          and page.locator(".panel-handle-float").count() == 1)
+    check("折叠后浮钮与右侧手柄同一水平线",
+          abs(page.locator(".panel-handle-float").bounding_box()["y"]
+              - page.locator(".panel-handle-right").bounding_box()["y"]) < 2)
+    page.locator(".panel-handle-float").click()
     page.wait_for_timeout(500)
     check("左栏恢复", page.locator(".sidebar-left").count() == 1)
 

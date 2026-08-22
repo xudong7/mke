@@ -1,5 +1,5 @@
 /* App.tsx — 三区布局（左/中/右均可折叠）：左=论文列表+运行历史，中=PDF 查看器，右=流程看板+批注 */
-import { ChevronLeft, ChevronsLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { HealthInfo, Paper, RunSummary } from "./types";
 import { errText, fetchHealth, fetchPaperText, fetchPapers, fetchRun, fetchRuns } from "./api/client";
@@ -151,13 +151,13 @@ export default function App() {
           </>
         ) : (
           <div
-            className="sidebar-rail"
+            className="panel-handle panel-handle-float"
             onClick={() => setLeftOpen(true)}
             title="展开论文库"
             role="button"
             aria-label="展开论文库"
           >
-            <ChevronRight size={14} />
+            <ChevronRight size={13} />
           </div>
         )}
 
@@ -193,7 +193,7 @@ export default function App() {
             role="button"
             aria-label="聚焦模式：折叠左栏、加宽结果面板"
           >
-            <ChevronsLeft size={13} />
+            {wideMode ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
           </div>
         </div>
       </main>
