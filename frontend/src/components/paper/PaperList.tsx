@@ -1,5 +1,5 @@
-/* PaperList.tsx — 左侧论文列表（只显示已上传的 PDF）+ 上传按钮 */
-import { Upload } from "lucide-react";
+/* PaperList.tsx — 左侧论文列表（只显示已上传的 PDF）+ 上传/折叠 */
+import { ChevronLeft, Upload } from "lucide-react";
 import { useRef } from "react";
 import type { Paper } from "../../types";
 import { uploadPdf } from "../../api/client";
@@ -9,9 +9,10 @@ interface Props {
   selectedId: string | null;
   onSelect: (paper: Paper) => void;
   onUploaded: () => void;
+  onCollapse: () => void;
 }
 
-export function PaperList({ papers, selectedId, onSelect, onUploaded }: Props) {
+export function PaperList({ papers, selectedId, onSelect, onUploaded, onCollapse }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (file: File) => {
@@ -27,10 +28,20 @@ export function PaperList({ papers, selectedId, onSelect, onUploaded }: Props) {
     <div className="paper-list">
       <div className="paper-list-header">
         <span className="paper-list-title">已上传论文</span>
-        <button className="btn btn-sm" onClick={() => fileRef.current?.click()}>
-          <Upload size={14} />
-          上传 PDF
-        </button>
+        <div className="paper-list-actions">
+          <button className="btn btn-sm" onClick={() => fileRef.current?.click()}>
+            <Upload size={14} />
+            上传 PDF
+          </button>
+          <button
+            className="btn btn-icon"
+            onClick={onCollapse}
+            aria-label="折叠论文库"
+            title="折叠论文库"
+          >
+            <ChevronLeft size={14} />
+          </button>
+        </div>
         <input
           ref={fileRef}
           type="file"
@@ -65,19 +76,16 @@ function PaperItem({
   onSelect: (p: Paper) => void;
 }) {
   const sizeKb = Math.round(paper.text_size / 1024);
+  const meta = [paper.year, paper.first_author].filter(Boolean).join(" · ");
   return (
     <button
       className={`paper-item${selected ? " selected" : ""}`}
       onClick={() => onSelect(paper)}
-      title={paper.id}
+      title={`${paper.title || paper.id}\n${meta}${meta ? " · " : ""}${sizeKb} KB`}
     >
-      <div className="paper-item-meta mono">
-        {paper.year || "—"} · 上传
-      </div>
-      <div className="paper-item-title">{paper.title || paper.id}</div>
-      <div className="paper-item-sub mono">
-        {paper.first_author} · {sizeKb} KB
-      </div>
+      <span className="paper-item-dot" />
+      <span className="paper-item-title">{paper.title || paper.id}</span>
+      <span className="paper-item-meta mono">{sizeKb} KB</span>
     </button>
   );
 }

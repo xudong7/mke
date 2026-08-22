@@ -152,6 +152,7 @@ export default function App() {
                 busy={pipeline.runStatus === "running"}
                 onSelectPaper={(p) => void selectPaper(p)}
                 onUploaded={handleUploaded}
+                onCollapse={() => setLeftOpen(false)}
                 onLoadRun={(rid) => void handleLoadRun(rid)}
                 onRerunRun={handleRerunRun}
               />

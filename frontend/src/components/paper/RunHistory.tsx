@@ -41,37 +41,37 @@ export function RunHistory({ runs, currentRunId, busy, onLoad, onRerun }: Props)
             <span className="run-history-time mono">
               {new Date(r.created_at).toLocaleString()}
             </span>
-            <span className="mono text-2">{r.record_count} 条</span>
-          </div>
-          <div className="run-history-steps mono">
-            {Object.entries(r.step_statuses).map(([step, status]) => (
-              <span key={step} className={`step-chip status-${status}`} title={step}>
-                {STEP_LABELS[step] ?? step}
-              </span>
-            ))}
-            <span className="mono text-2">
-              {doneCount(r)}/5
+            <span className="run-history-count mono text-2">{r.record_count} 条</span>
+            <span className="run-history-steps" title={`${doneCount(r)}/5 步骤完成`}>
+              {Object.entries(r.step_statuses).map(([step, status]) => (
+                <span
+                  key={step}
+                  className={`step-dot status-${status}`}
+                  title={`${STEP_LABELS[step] ?? step} · ${status}`}
+                />
+              ))}
             </span>
-          </div>
-          <div className="run-history-actions">
-            <button
-              className="btn btn-icon"
-              onClick={() => onLoad(r.id)}
-              disabled={busy}
-              aria-label="查看"
-              title="查看该次运行记录"
-            >
-              <Eye size={14} />
-            </button>
-            <button
-              className="btn btn-icon"
-              onClick={onRerun}
-              disabled={busy || r.status === "running"}
-              aria-label="重新运行"
-              title="以该论文重新运行完整流水线（新开一次运行记录）"
-            >
-              <RotateCcw size={14} />
-            </button>
+            <span className="run-history-count mono text-2">{doneCount(r)}/5</span>
+            <div className="run-history-actions">
+              <button
+                className="btn btn-icon"
+                onClick={() => onLoad(r.id)}
+                disabled={busy}
+                aria-label="查看"
+                title="查看该次运行记录"
+              >
+                <Eye size={14} />
+              </button>
+              <button
+                className="btn btn-icon"
+                onClick={onRerun}
+                disabled={busy || r.status === "running"}
+                aria-label="重新运行"
+                title="以该论文重新运行完整流水线（新开一次运行记录）"
+              >
+                <RotateCcw size={14} />
+              </button>
+            </div>
           </div>
         </div>
       ))}
