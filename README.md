@@ -53,11 +53,34 @@ uv run python main.py
 
 > `data/` 目录(文献全文与输出)不纳入 git 版本管理,请通过其他渠道备份。
 
+## Web 界面
+
+系统附带一个 Web 界面(黑白灰主题,红黄绿仅用于状态信号),三栏可折叠布局:
+
+- **左栏**:已上传 PDF 论文列表 + 上传按钮 + 每篇论文的**历史解析结果**(查看/重新运行,可折叠)
+- **中栏**:PDF 论文浏览器 — pdf.js 渲染(devicePixelRatio 高清/缩放/适应宽度/翻页),语料库中无 PDF 的论文为文本预览
+- **右栏**:解析流程**横向时间轴看板** — ① PDF 解析(本地版面重建:两栏排序/页眉页脚过滤) → ② 路由分类 → ③ 主抽取 → ④ 字段引用 → ⑤ 数值结构化,点击节点查看该步中间结果;下方结果表支持**结果批注**(行/字段级,挂载于运行记录,不修改原结果),可折叠
+
+**运行历史**:每次执行流水线自动保存到后端(`data/runs/`),刷新/跳转不丢失;可从左侧历史选择查看任意一次运行结果,或一键重新运行(新开记录)。
+
+```bash
+# 1. 启动后端(FastAPI,默认 :8000)
+uv run uvicorn backend.main:app --reload --port 8000
+
+# 2a. 开发模式(前端热更新,:5173, /api 自动代理)
+cd frontend && npm install && npm run dev
+
+# 2b. 生产模式(构建产物由后端单端口托管,:8000)
+cd frontend && npm run build && open http://localhost:8000
+```
+
+> ②–⑤ 步调用 LLM,消耗 API token;PDF 解析为纯本地计算。
+
 ## 目录结构
 
 ```
 demo/
-├── main.py                  # 入口:批量处理 → 规范化 → 导出
+├── main.py                  # 入口:批量处理 → 规范化 → 导出(CLI)
 ├── config.py                # 路径与模型配置(密钥走环境变量)
 ├── core/
 │   ├── extractor.py         # 主抽取器:路由分发 + 批量处理
@@ -69,6 +92,22 @@ demo/
 │   ├── structurizer_agent.py# Agent⑤ 数值结构化(逐条调用)
 │   ├── postprocess.py       # 规则格式化:补全字段,缺失填 "00"
 │   └── knowledge_agent.py   # Agent⑥ 合成规律/结构-性能关系总结(待接线)
+├── backend/                 # Web API(FastAPI)
+│   ├── main.py              # 入口:CORS、路由挂载、生产模式静态托管(SPA fallback)
+│   ├── deps.py              # 路径常量与惰性 OpenAI 客户端(不 import config.py)
+│   ├── parser.py            # PDF 轻量版面重建(PyMuPDF):栏检测/页眉页脚过滤
+│   ├── papers.py            # 论文列表 / 全文 / PDF 服务 / 上传解析
+│   ├── pipeline.py          # 流水线 5 步无状态端点(parse/route/extract/cite/structurize)
+│   ├── runs.py              # 运行历史持久化(JSON 文件,data/runs/)
+│   ├── annotations.py       # 结果批注 CRUD(挂 run,data/annotations/)
+│   └── smoke_test.py        # 后端冒烟测试脚本
+├── frontend/                # Web 前端(React 18 + Vite + TS)
+│   ├── src/
+│   │   ├── components/paper/      # 论文列表 / pdf.js 阅读器 / 文本预览 / 运行历史
+│   │   ├── components/pipeline/   # 时间轴看板 / 结果表格(可批注)
+│   │   ├── components/annotation/ # 结果批注面板
+│   │   └── hooks/                 # usePipeline(运行同步) / useAnnotations
+│   └── e2e/                 # Playwright 端到端验证脚本
 ├── skills/                  # 可组合的技能模块(JSON)
 ├── data/                    # 输入文献与输出结果(git 忽略)
 └── pyproject.toml / uv.lock # uv 依赖管理
