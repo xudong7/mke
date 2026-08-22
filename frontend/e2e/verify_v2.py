@@ -130,11 +130,10 @@ with sync_playwright() as p:
     # 等待新 run 完成（可能复用 LLM 结果，等 5 步 done）
     for _ in range(60):
         page.wait_for_timeout(5000)
-        if page.locator(".run-history-item").first.locator(".step-dot.status-running").count() == 0:
+        if page.locator(".timeline-node.status-running").count() == 0:
             break
     page.wait_for_timeout(3000)
-    check("新 run 完成（5/5）", page.locator(".run-history-item").first.locator(
-        ".step-dot.status-done").count() == 5)
+    check("新 run 完成（5/5）", page.locator(".timeline-node.status-done").count() == 5)
     page.screenshot(path=str(SHOT_DIR / "07_rerun.png"))
 
     # 8. 结果批注（v3：hover 触发 + 浮层 + tab）

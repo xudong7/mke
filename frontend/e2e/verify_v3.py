@@ -87,7 +87,7 @@ with sync_playwright() as p:
     inner_h = page.evaluate("window.innerHeight")
     check("页面不整体滚动", scroll_h <= inner_h + 1, f"scrollH={scroll_h} innerH={inner_h}")
     pane_h = page.locator(".pane-center").bounding_box()["height"]
-    check("中栏高度 == 视口-48", abs(pane_h - (inner_h - 48)) < 3, f"{pane_h:.0f} vs {inner_h - 48}")
+    check("中栏高度 == 视口", abs(pane_h - inner_h) < 3, f"{pane_h:.0f} vs {inner_h}")
     pdf_scroll = page.locator(".pdf-scroll")
     pdf_scroll.evaluate("el => { el.scrollTop = 400; }")
     page.wait_for_timeout(300)

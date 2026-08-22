@@ -1,5 +1,5 @@
 /* PipelineKanban.tsx — 流程看板：时间轴/结果表 + 批注 tab（看板 | 批注(n)） */
-import { Play, RotateCcw } from "lucide-react";
+import { Cpu, Play, RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Annotation, ExtractRecord, PipelineStep, RunStatus, StepId } from "../../types";
 import { PipelineTimeline } from "./PipelineTimeline";
@@ -10,10 +10,10 @@ import { AnnotationPanel } from "../annotation/AnnotationPanel";
 interface Props {
   steps: PipelineStep[];
   records: ExtractRecord[];
-  paperLabel: string;
   runId: string | null;
   runStatus: RunStatus | null;
   llmConfigured: boolean;
+  llmModel: string | null;
   isStepReady: (id: StepId) => boolean;
   onRunStep: (id: StepId) => void;
   onRunAll: () => void;
@@ -32,10 +32,10 @@ interface Props {
 export function PipelineKanban({
   steps,
   records,
-  paperLabel,
   runId,
   runStatus,
   llmConfigured,
+  llmModel,
   isStepReady,
   onRunStep,
   onRunAll,
@@ -60,9 +60,12 @@ export function PipelineKanban({
   return (
     <div className="kanban">
       <div className="kanban-header">
-        <div className="kanban-title" title={paperLabel}>
-          {paperLabel || "未选择论文"}
-        </div>
+        <span
+          className={`kanban-llm ${llmConfigured ? "ok" : "missing"}`}
+          title={llmConfigured ? `LLM 已配置 · 模型 ${llmModel ?? "未知"}` : "未配置 OPENAI_API_KEY，LLM 步骤不可用"}
+        >
+          <Cpu size={14} />
+        </span>
         <div className="kanban-actions">
           {runId && (
             <span className={`run-badge mono status-${runStatus ?? "pending"}`}>

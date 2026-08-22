@@ -10,18 +10,7 @@ interface Props {
   onRerun: () => void;
 }
 
-const STEP_LABELS: Record<string, string> = {
-  parse: "解析",
-  route: "路由",
-  extract: "抽取",
-  cite: "引用",
-  structurize: "结构化",
-};
-
 export function RunHistory({ runs, currentRunId, busy, onLoad, onRerun }: Props) {
-  const doneCount = (r: RunSummary) =>
-    Object.values(r.step_statuses).filter((s) => s === "done").length;
-
   return (
     <div className="run-history">
       <div className="run-history-header">
@@ -42,16 +31,6 @@ export function RunHistory({ runs, currentRunId, busy, onLoad, onRerun }: Props)
               {new Date(r.created_at).toLocaleString()}
             </span>
             <span className="run-history-count mono text-2">{r.record_count} 条</span>
-            <span className="run-history-steps" title={`${doneCount(r)}/5 步骤完成`}>
-              {Object.entries(r.step_statuses).map(([step, status]) => (
-                <span
-                  key={step}
-                  className={`step-dot status-${status}`}
-                  title={`${STEP_LABELS[step] ?? step} · ${status}`}
-                />
-              ))}
-            </span>
-            <span className="run-history-count mono text-2">{doneCount(r)}/5</span>
             <div className="run-history-actions">
               <button
                 className="btn btn-icon"

@@ -11,7 +11,6 @@ interface Props {
   busy: boolean;
   onSelectPaper: (p: Paper) => void;
   onUploaded: () => void;
-  onCollapse: () => void;
   onLoadRun: (runId: string) => void;
   onRerunRun: () => void;
 }
@@ -24,7 +23,6 @@ export function PaperBrowser({
   busy,
   onSelectPaper,
   onUploaded,
-  onCollapse,
   onLoadRun,
   onRerunRun,
 }: Props) {
@@ -35,7 +33,6 @@ export function PaperBrowser({
         selectedId={selected?.id ?? null}
         onSelect={onSelectPaper}
         onUploaded={onUploaded}
-        onCollapse={onCollapse}
       />
       <RunHistory
         runs={runs}

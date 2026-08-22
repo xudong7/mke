@@ -215,50 +215,6 @@ textarea:focus-visible {
   height: 100%;
 }
 
-.app-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 16px;
-  height: 48px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.app-logo {
-  font-weight: 700;
-  letter-spacing: 1px;
-  padding: 2px 12px;
-  background: var(--primary);
-  color: #fff;
-  border-radius: var(--radius-pill);
-}
-.app-title {
-  font-size: 15px;
-  font-weight: 600;
-}
-.app-header-right {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.llm-badge {
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  border: 1px solid var(--border-strong);
-  color: var(--text-2);
-}
-.llm-badge.ok {
-  color: var(--signal-green);
-  border-color: var(--signal-green);
-}
-.llm-badge.missing {
-  color: var(--signal-red);
-  border-color: var(--signal-red);
-}
-
 .app-main {
   display: flex;
   flex: 1;
@@ -378,12 +334,6 @@ textarea:focus-visible {
   gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
-}
-.paper-list-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
 }
 .paper-list-title {
   font-weight: 600;
@@ -595,19 +545,6 @@ textarea:focus-visible {
   font-size: 11.5px;
   color: var(--text-2);
 }
-.run-history-steps {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: 2px;
-}
-.step-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: currentColor;
-}
 .run-history-count {
   font-size: 10.5px;
 }
@@ -656,12 +593,15 @@ textarea:focus-visible {
   gap: 12px;
   margin-bottom: 12px;
 }
-.kanban-title {
-  font-size: 15px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.kanban-llm {
+  display: inline-flex;
+  align-items: center;
+}
+.kanban-llm.ok {
+  color: var(--signal-green);
+}
+.kanban-llm.missing {
+  color: var(--signal-red);
 }
 .kanban-actions {
   display: flex;
@@ -876,27 +816,31 @@ textarea:focus-visible {
   color: var(--text-2);
   text-decoration: underline;
 }
-/* parse 统计卡 */
+/* parse 统计：一行纯文本 */
 .stat-cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 8px 16px;
+  align-items: baseline;
 }
 .stat-card {
-  min-width: 92px;
-  flex: 1;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  padding: 8px;
-  text-align: center;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: auto;
+  flex: none;
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
 }
 .stat-card .v {
-  font-size: 17px;
+  font-size: 13px;
   font-weight: 700;
+  font-family: var(--font-mono);
 }
 .stat-card .k {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-2);
 }
 .step-markdown {
@@ -925,12 +869,12 @@ textarea:focus-visible {
 }
 .filtered-kind {
   display: inline-block;
-  padding: 0 7px;
-  border-radius: var(--radius-pill);
-  background: var(--gray-300);
-  color: var(--gray-900);
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--text-3);
   font-size: 10.5px;
-  margin-right: 6px;
+  margin-right: 4px;
 }
 /* route */
 .analysis-badge {
@@ -944,26 +888,24 @@ textarea:focus-visible {
   font-weight: 600;
 }
 .route-reason {
-  background: var(--surface-2);
-  border-left: 3px solid var(--border-strong);
-  padding: 8px 10px;
-  border-radius: 0 4px 4px 0;
+  background: none;
+  border-left: none;
+  padding: 0;
   font-size: 12.5px;
-  color: var(--text);
+  color: var(--text-2);
 }
 .skill-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 8px 14px;
   align-items: center;
 }
 .skill-chip {
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
-  font-size: 11px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
   color: var(--text-2);
-  background: var(--surface);
 }
 .route-snippets {
   display: flex;
@@ -972,10 +914,10 @@ textarea:focus-visible {
 }
 .route-snippets blockquote {
   margin: 0;
-  background: var(--gray-100);
-  border-left: 3px solid var(--gray-300);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  padding: 6px 10px;
+  background: none;
+  border-left: 2px solid var(--border-strong);
+  border-radius: 0;
+  padding: 2px 8px;
   font-size: 12px;
   color: var(--text-2);
 }
@@ -1015,16 +957,15 @@ textarea:focus-visible {
   flex-wrap: wrap;
 }
 .struct-chip {
-  padding: 4px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-strong);
+  padding: 2px 0;
+  border: none;
+  border-radius: 0;
   font-size: 12px;
   color: var(--text-2);
-  background: var(--surface);
+  background: none;
 }
 .struct-chip.has {
   color: var(--signal-green);
-  border-color: var(--signal-green);
 }
 .struct-chip b {
   font-weight: 700;

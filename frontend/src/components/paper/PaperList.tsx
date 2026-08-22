@@ -1,5 +1,5 @@
-/* PaperList.tsx — 左侧论文列表（只显示已上传的 PDF）+ 上传/折叠 */
-import { ChevronLeft, Upload } from "lucide-react";
+/* PaperList.tsx — 左侧论文列表（只显示已上传的 PDF）+ 上传 */
+import { Upload } from "lucide-react";
 import { useRef } from "react";
 import type { Paper } from "../../types";
 import { uploadPdf } from "../../api/client";
@@ -9,10 +9,9 @@ interface Props {
   selectedId: string | null;
   onSelect: (paper: Paper) => void;
   onUploaded: () => void;
-  onCollapse: () => void;
 }
 
-export function PaperList({ papers, selectedId, onSelect, onUploaded, onCollapse }: Props) {
+export function PaperList({ papers, selectedId, onSelect, onUploaded }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (file: File) => {
@@ -28,20 +27,10 @@ export function PaperList({ papers, selectedId, onSelect, onUploaded, onCollapse
     <div className="paper-list">
       <div className="paper-list-header">
         <span className="paper-list-title">已上传论文</span>
-        <div className="paper-list-actions">
-          <button className="btn btn-sm" onClick={() => fileRef.current?.click()}>
-            <Upload size={14} />
-            上传 PDF
-          </button>
-          <button
-            className="btn btn-icon"
-            onClick={onCollapse}
-            aria-label="折叠论文库"
-            title="折叠论文库"
-          >
-            <ChevronLeft size={14} />
-          </button>
-        </div>
+        <button className="btn btn-sm" onClick={() => fileRef.current?.click()}>
+          <Upload size={14} />
+          上传 PDF
+        </button>
         <input
           ref={fileRef}
           type="file"

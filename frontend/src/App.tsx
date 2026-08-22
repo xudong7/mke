@@ -113,25 +113,9 @@ export default function App() {
   }, []);
 
   const uploadPapers = useMemo(() => papers.filter((p) => p.source === "upload"), [papers]);
-  const paperLabel = selected?.title || selected?.id || "";
 
   return (
     <div className="app">
-      <header className="app-header">
-        <div className="app-logo">MKE</div>
-        <div className="app-title">介孔材料文献知识自动抽取系统</div>
-        <div className="app-header-right mono">
-          {health && (
-            <>
-              <span className="text-2">模型 {health.model}</span>
-              <span className={`llm-badge ${health.llm_configured ? "ok" : "missing"}`}>
-                {health.llm_configured ? "LLM 已配置" : "未配置 API Key"}
-              </span>
-            </>
-          )}
-        </div>
-      </header>
-
       <main className={`app-main${centerOpen ? "" : " center-collapsed"}`}>
         {leftOpen ? (
           <>
@@ -152,7 +136,6 @@ export default function App() {
                 busy={pipeline.runStatus === "running"}
                 onSelectPaper={(p) => void selectPaper(p)}
                 onUploaded={handleUploaded}
-                onCollapse={() => setLeftOpen(false)}
                 onLoadRun={(rid) => void handleLoadRun(rid)}
                 onRerunRun={handleRerunRun}
               />
@@ -192,10 +175,10 @@ export default function App() {
               <PipelineKanban
                 steps={pipeline.steps}
                 records={pipeline.records}
-                paperLabel={paperLabel}
                 runId={pipeline.runId}
                 runStatus={pipeline.runStatus}
                 llmConfigured={health?.llm_configured ?? false}
+                llmModel={health?.model ?? null}
                 isStepReady={pipeline.isStepReady}
                 onRunStep={(id) => void pipeline.runStep(id)}
                 onRunAll={() => void pipeline.runAll()}
