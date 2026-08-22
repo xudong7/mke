@@ -1,4 +1,4 @@
-/* LLMCostBanner.tsx — LLM 消耗提示条（可关闭）；步骤⑤ 时长预估 */
+/* LLMCostBanner.tsx — 简要 LLM 调用提示（可关闭） */
 import { X } from "lucide-react";
 import { useState } from "react";
 
@@ -15,9 +15,9 @@ export function LLMCostBanner({ llmConfigured, structurizeEstimate }: Props) {
     <div className="llm-banner">
       <span className="dot status-warn" />
       <span>
-        ②–⑤ 步将调用大模型（LLM），消耗 API token 并可能耗时较长。
-        {llmConfigured ? "" : " 当前未配置 OPENAI_API_KEY，LLM 步骤不可用。"}
-        {structurizeEstimate && ` ${structurizeEstimate}。`}
+        {llmConfigured
+          ? `②–⑤ 调用 LLM${structurizeEstimate ? `，${structurizeEstimate}` : ""}`
+          : "未配置 OPENAI_API_KEY，LLM 不可用"}
       </span>
       <button className="btn btn-icon" onClick={() => setDismissed(true)} aria-label="关闭提示" title="关闭提示">
         <X size={14} />

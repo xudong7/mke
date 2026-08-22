@@ -57,7 +57,7 @@ with sync_playwright() as p:
 
     # 3. 侧栏折叠：左栏折叠 → PDF 区变宽
     center_before = page.locator(".pane-center").bounding_box()["width"]
-    page.locator(".edge-strip-left").click()
+    page.locator(".panel-handle-left").click()
     page.wait_for_timeout(600)
     center_after = page.locator(".pane-center").bounding_box()["width"]
     check("折叠左栏后 PDF 区变宽", center_after > center_before + 150,
@@ -71,14 +71,14 @@ with sync_playwright() as p:
 
     # 聚焦模式：右栏常驻，右条切换（折叠左栏 + 加宽右栏）
     kanban_before = page.locator(".sidebar-right").bounding_box()["width"]
-    page.locator(".edge-strip-right").click()
+    page.locator(".panel-handle-right").click()
     page.wait_for_timeout(400)
     check("聚焦：右栏常驻", page.locator(".kanban").count() > 0)
     check("聚焦：左栏折叠", page.locator(".sidebar-left").count() == 0)
     kanban_w = page.locator(".sidebar-right").bounding_box()["width"]
     check("聚焦：右栏加宽", kanban_w > kanban_before + 100,
           f"{kanban_before:.0f} → {kanban_w:.0f}")
-    page.locator(".edge-strip-right").click()
+    page.locator(".panel-handle-right").click()
     page.wait_for_timeout(400)
     check("还原：左栏恢复", page.locator(".sidebar-left").count() == 1)
 

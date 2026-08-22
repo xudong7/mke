@@ -54,7 +54,7 @@ export function PipelineKanban({
   const structurizeEstimate = useMemo(() => {
     const n = records.length;
     if (n === 0) return null;
-    return `共 ${n} 条记录，逐条结构化预计 ${Math.round(n * 30)}–${Math.round(n * 60)} 秒`;
+    return `约 ${Math.round(n * 30)}–${Math.round(n * 60)} 秒`;
   }, [records.length]);
 
   return (

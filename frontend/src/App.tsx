@@ -1,5 +1,5 @@
 /* App.tsx — 三区布局（左/中/右均可折叠）：左=论文列表+运行历史，中=PDF 查看器，右=流程看板+批注 */
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronsLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { HealthInfo, Paper, RunSummary } from "./types";
 import { errText, fetchHealth, fetchPaperText, fetchPapers, fetchRun, fetchRuns } from "./api/client";
@@ -138,18 +138,16 @@ export default function App() {
                 onLoadRun={(rid) => void handleLoadRun(rid)}
                 onRerunRun={handleRerunRun}
               />
+              <div
+                className="panel-handle panel-handle-left"
+                onClick={() => setLeftOpen(false)}
+                title="折叠论文库"
+                role="button"
+                aria-label="折叠论文库"
+              >
+                <ChevronLeft size={13} />
+              </div>
             </aside>
-            <div
-              className="edge-strip edge-strip-left"
-              onClick={() => setLeftOpen(false)}
-              title="折叠论文库"
-              role="button"
-              aria-label="折叠论文库"
-            >
-              <span className="edge-strip-handle">
-                <span className="edge-strip-grip" />
-              </span>
-            </div>
           </>
         ) : (
           <div
@@ -168,34 +166,36 @@ export default function App() {
           {papersLoading && <div className="viewer-loading">正在加载论文库…</div>}
         </section>
 
-        <div
-          className="edge-strip edge-strip-right"
-          onClick={toggleWide}
-          title="聚焦模式：折叠左栏、加宽结果面板"
-          role="button"
-          aria-label="聚焦模式：折叠左栏、加宽结果面板"
-        >
-          <span className="edge-strip-handle" />
+        <div className="sidebar-right-wrap">
+          <aside className="sidebar-right">
+            <PipelineKanban
+              steps={pipeline.steps}
+              records={pipeline.records}
+              runId={pipeline.runId}
+              runStatus={pipeline.runStatus}
+              llmConfigured={health?.llm_configured ?? false}
+              llmModel={health?.model ?? null}
+              isStepReady={pipeline.isStepReady}
+              onRunStep={(id) => void pipeline.runStep(id)}
+              onRunAll={() => void pipeline.runAll()}
+              onReset={pipeline.reset}
+              annotations={annotationsApi.annotations}
+              onSaveAnnotation={handleSaveAnnotation}
+              onDeleteAnnotation={(id) => annotationsApi.remove(id)}
+              onJumpToRecord={handleJumpToRecord}
+              recordJump={recordJump}
+            />
+          </aside>
+          <div
+            className="panel-handle panel-handle-right"
+            onClick={toggleWide}
+            title="聚焦模式：折叠左栏、加宽结果面板"
+            role="button"
+            aria-label="聚焦模式：折叠左栏、加宽结果面板"
+          >
+            <ChevronsLeft size={13} />
+          </div>
         </div>
-        <aside className="sidebar-right">
-          <PipelineKanban
-            steps={pipeline.steps}
-            records={pipeline.records}
-            runId={pipeline.runId}
-            runStatus={pipeline.runStatus}
-            llmConfigured={health?.llm_configured ?? false}
-            llmModel={health?.model ?? null}
-            isStepReady={pipeline.isStepReady}
-            onRunStep={(id) => void pipeline.runStep(id)}
-            onRunAll={() => void pipeline.runAll()}
-            onReset={pipeline.reset}
-            annotations={annotationsApi.annotations}
-            onSaveAnnotation={handleSaveAnnotation}
-            onDeleteAnnotation={(id) => annotationsApi.remove(id)}
-            onJumpToRecord={handleJumpToRecord}
-            recordJump={recordJump}
-          />
-        </aside>
       </main>
     </div>
   );

@@ -31,41 +31,48 @@ with sync_playwright() as p:
     page.wait_for_load_state("networkidle")
     page.wait_for_selector(".paper-item", timeout=15000)
 
-    # ============ 1. 手柄位置（双栏各一条，面向中栏，无重叠） ============
-    strips = page.locator(".edge-strip")
-    check("双栏手柄存在（左右各一）", strips.count() == 2, f"count={strips.count()}")
-    left_strip = page.locator(".edge-strip-left").bounding_box()
+    # ============ 1. 手柄位置（悬浮于面板边缘、竖直居中的小箭头钮） ============
+    handles = page.locator(".panel-handle")
+    check("双栏悬浮手柄存在（左右各一）", handles.count() == 2, f"count={handles.count()}")
+    left_handle = page.locator(".panel-handle-left").bounding_box()
     sidebar_bb = page.locator(".sidebar-left").bounding_box()
     center_bb = page.locator(".pane-center").bounding_box()
+    left_cx = left_handle["x"] + left_handle["width"] / 2
     check(
-        "左侧手柄位于左栏右缘",
-        abs(left_strip["x"] - (sidebar_bb["x"] + sidebar_bb["width"])) < 3,
-        f"strip x={left_strip['x']:.0f}, sidebar right={sidebar_bb['x'] + sidebar_bb['width']:.0f}",
+        "左侧手柄水平居中对齐左栏右缘",
+        abs(left_cx - (sidebar_bb["x"] + sidebar_bb["width"])) < 3,
+        f"handle cx={left_cx:.0f}, sidebar right={sidebar_bb['x'] + sidebar_bb['width']:.0f}",
     )
     check(
         "左侧手柄竖直居中于面板",
-        abs((left_strip["y"] + left_strip["height"] / 2) - (center_bb["y"] + center_bb["height"] / 2)) < 12,
+        abs((left_handle["y"] + left_handle["height"] / 2) - (center_bb["y"] + center_bb["height"] / 2)) < 12,
     )
-    center_strip = page.locator(".edge-strip-right").bounding_box()
+    right_handle = page.locator(".panel-handle-right").bounding_box()
+    right_cx = right_handle["x"] + right_handle["width"] / 2
     check(
-        "右栏折叠条贴邻中栏右缘",
-        abs(center_strip["x"] - (center_bb["x"] + center_bb["width"])) < 3,
-        f"strip x={center_strip['x']:.0f}, center right={center_bb['x'] + center_bb['width']:.0f}",
+        "右侧手柄水平居中对齐中栏右缘/看板左缘",
+        abs(right_cx - (center_bb["x"] + center_bb["width"])) < 3,
+        f"handle cx={right_cx:.0f}, center right={center_bb['x'] + center_bb['width']:.0f}",
+    )
+    check(
+        "左右手柄同一水平线",
+        abs(left_handle["y"] - right_handle["y"]) < 2,
+        f"left y={left_handle['y']:.0f}, right y={right_handle['y']:.0f}",
     )
     page.screenshot(path=str(SHOT_DIR / "01_handles.png"))
 
     # ============ 2. 折叠/恢复（含中栏） ============
     # 左栏折叠
-    page.locator(".edge-strip-left").click()
+    page.locator(".panel-handle-left").click()
     page.wait_for_timeout(500)
     check("左栏折叠", page.locator(".sidebar-left").count() == 0 and page.locator(".sidebar-rail").count() >= 1)
     page.locator(".sidebar-rail").first.click()
     page.wait_for_timeout(500)
     check("左栏恢复", page.locator(".sidebar-left").count() == 1)
 
-    # 聚焦模式（右栏常驻；右条 = 折叠左栏 + 右栏加宽）
+    # 聚焦模式（右栏常驻；右手柄 = 折叠左栏 + 右栏加宽）
     kanban_before = page.locator(".sidebar-right").bounding_box()["width"]
-    page.locator(".edge-strip-right").click()
+    page.locator(".panel-handle-right").click()
     page.wait_for_timeout(500)
     check("聚焦：右栏常驻", page.locator(".kanban").count() > 0)
     check("聚焦：左栏折叠", page.locator(".sidebar-left").count() == 0)
@@ -73,7 +80,7 @@ with sync_playwright() as p:
     check("聚焦：右栏加宽", kanban_w > kanban_before + 100,
           f"{kanban_before:.0f} → {kanban_w:.0f}")
     page.screenshot(path=str(SHOT_DIR / "02_wide_mode.png"))
-    page.locator(".edge-strip-right").click()
+    page.locator(".panel-handle-right").click()
     page.wait_for_timeout(500)
     check("还原：左栏恢复", page.locator(".sidebar-left").count() == 1)
 
