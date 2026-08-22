@@ -268,9 +268,6 @@ textarea:focus-visible {
 .edge-strip-left {
   border-right: 1px solid var(--border);
 }
-.edge-strip-center {
-  border-left: 1px solid var(--border);
-}
 .edge-strip-right {
   border-left: 1px solid var(--border);
 }
@@ -292,18 +289,9 @@ textarea:focus-visible {
   background: var(--gray-100);
   color: var(--text);
 }
-.rail-center {
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-}
 .rail-right {
   border-right: none;
   border-left: 1px solid var(--border);
-}
-/* 中栏折叠时看板占满 */
-.app-main.center-collapsed .sidebar-right {
-  flex: 1;
-  width: auto;
 }
 .pane-center {
   flex: 1;

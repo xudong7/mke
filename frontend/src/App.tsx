@@ -17,7 +17,6 @@ export default function App() {
   const [text, setText] = useState<string>("");
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [leftOpen, setLeftOpen] = useState(true);
-  const [centerOpen, setCenterOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   /** 批注列表点击 → 滚动到对应记录 */
   const [recordJump, setRecordJump] = useState<{ index: number; token: number } | null>(null);
@@ -116,17 +115,9 @@ export default function App() {
 
   return (
     <div className="app">
-      <main className={`app-main${centerOpen ? "" : " center-collapsed"}`}>
+      <main className="app-main">
         {leftOpen ? (
           <>
-            <div
-              className="edge-strip edge-strip-left"
-              onClick={() => setLeftOpen(false)}
-              title="折叠论文库"
-              role="button"
-            >
-              <span className="edge-strip-grip" />
-            </div>
             <aside className="sidebar-left">
               <PaperBrowser
                 papers={uploadPapers}
@@ -140,6 +131,15 @@ export default function App() {
                 onRerunRun={handleRerunRun}
               />
             </aside>
+            <div
+              className="edge-strip edge-strip-left"
+              onClick={() => setLeftOpen(false)}
+              title="折叠论文库"
+              role="button"
+              aria-label="折叠论文库"
+            >
+              <span className="edge-strip-grip" />
+            </div>
           </>
         ) : (
           <div
@@ -153,24 +153,22 @@ export default function App() {
           </div>
         )}
 
-        {centerOpen && (
-          <section className="pane-center">
-            <PaperViewer paper={selected} text={text} />
-            {papersLoading && <div className="viewer-loading">正在加载论文库…</div>}
-          </section>
-        )}
-        <div
-          className={centerOpen ? "edge-strip edge-strip-center" : "sidebar-rail rail-center"}
-          onClick={() => setCenterOpen((v) => !v)}
-          title={centerOpen ? "折叠论文预览" : "展开论文预览"}
-          role="button"
-          aria-label={centerOpen ? "折叠论文预览" : "展开论文预览"}
-        >
-          {centerOpen ? <span className="edge-strip-grip" /> : <ChevronLeft size={14} />}
-        </div>
+        <section className="pane-center">
+          <PaperViewer paper={selected} text={text} />
+          {papersLoading && <div className="viewer-loading">正在加载论文库…</div>}
+        </section>
 
         {rightOpen ? (
           <>
+            <div
+              className="edge-strip edge-strip-right"
+              onClick={() => setRightOpen(false)}
+              title="折叠流程看板"
+              role="button"
+              aria-label="折叠流程看板"
+            >
+              <span className="edge-strip-grip" />
+            </div>
             <aside className="sidebar-right">
               <PipelineKanban
                 steps={pipeline.steps}
@@ -190,14 +188,6 @@ export default function App() {
                 recordJump={recordJump}
               />
             </aside>
-            <div
-              className="edge-strip edge-strip-right"
-              onClick={() => setRightOpen(false)}
-              title="折叠流程看板"
-              role="button"
-            >
-              <span className="edge-strip-grip" />
-            </div>
           </>
         ) : (
           <div

@@ -31,19 +31,24 @@ with sync_playwright() as p:
     page.wait_for_load_state("networkidle")
     page.wait_for_selector(".paper-item", timeout=15000)
 
-    # ============ 1. 手柄位置（三区竖直居中，无重叠） ============
+    # ============ 1. 手柄位置（双栏各一条，面向中栏，无重叠） ============
     strips = page.locator(".edge-strip")
-    check("三区手柄存在", strips.count() == 3, f"count={strips.count()}")
+    check("双栏手柄存在（左右各一）", strips.count() == 2, f"count={strips.count()}")
     left_strip = page.locator(".edge-strip-left").bounding_box()
+    sidebar_bb = page.locator(".sidebar-left").bounding_box()
     center_bb = page.locator(".pane-center").bounding_box()
-    check("左侧手柄位于屏幕左缘", left_strip["x"] < 2, f"x={left_strip['x']}")
+    check(
+        "左侧手柄位于左栏右缘",
+        abs(left_strip["x"] - (sidebar_bb["x"] + sidebar_bb["width"])) < 3,
+        f"strip x={left_strip['x']:.0f}, sidebar right={sidebar_bb['x'] + sidebar_bb['width']:.0f}",
+    )
     check(
         "左侧手柄竖直居中于面板",
         abs((left_strip["y"] + left_strip["height"] / 2) - (center_bb["y"] + center_bb["height"] / 2)) < 12,
     )
-    center_strip = page.locator(".edge-strip-center").bounding_box()
+    center_strip = page.locator(".edge-strip-right").bounding_box()
     check(
-        "中部手柄贴邻中栏右缘",
+        "右栏折叠条贴邻中栏右缘",
         abs(center_strip["x"] - (center_bb["x"] + center_bb["width"])) < 3,
         f"strip x={center_strip['x']:.0f}, center right={center_bb['x'] + center_bb['width']:.0f}",
     )
@@ -58,24 +63,11 @@ with sync_playwright() as p:
     page.wait_for_timeout(500)
     check("左栏恢复", page.locator(".sidebar-left").count() == 1)
 
-    # 中栏折叠 → 看板占据中栏释放的空间
-    kanban_before = page.locator(".sidebar-right").bounding_box()["width"]
-    page.locator(".edge-strip-center").click()
-    page.wait_for_timeout(500)
-    kanban_w = page.locator(".sidebar-right").bounding_box()["width"]
-    check("中栏折叠后看板显著变宽", kanban_w > kanban_before + 500,
-          f"{kanban_before:.0f} → {kanban_w:.0f}")
-    check("中栏折叠出现 rail-center", page.locator(".rail-center").count() == 1)
-    page.screenshot(path=str(SHOT_DIR / "02_center_collapsed.png"))
-    page.locator(".rail-center").click()
-    page.wait_for_timeout(500)
-    check("中栏恢复", page.locator(".pane-center").count() == 1)
-
-    # 右栏折叠
+    # 右栏折叠（唯一竖条，位于中栏与看板之间）
     page.locator(".edge-strip-right").click()
     page.wait_for_timeout(500)
     check("右栏折叠", page.locator(".kanban").count() == 0)
-    page.locator(".sidebar-rail").last.click()
+    page.locator(".sidebar-rail").click()
     page.wait_for_timeout(500)
     check("右栏恢复", page.locator(".kanban").count() > 0)
 
