@@ -1,4 +1,5 @@
 /* PipelineKanban.tsx — 流程看板：时间轴/结果表 + 批注 tab（看板 | 批注(n)） */
+import { Play, RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Annotation, ExtractRecord, PipelineStep, RunStatus, StepId } from "../../types";
 import { PipelineTimeline } from "./PipelineTimeline";
@@ -68,10 +69,11 @@ export function PipelineKanban({
               run {runId.slice(0, 8)} · {runStatus}
             </span>
           )}
-          <button className="btn" onClick={onReset} disabled={!anyDone}>
-            重置
+          <button className="btn btn-icon" onClick={onReset} disabled={!anyDone} aria-label="重置" title="重置全部步骤状态">
+            <RotateCcw size={14} />
           </button>
           <button className="btn btn-primary" onClick={onRunAll} disabled={anyRunning}>
+            <Play size={14} />
             全部运行
           </button>
         </div>

@@ -161,7 +161,7 @@ with sync_playwright() as p:
     page.locator(".kanban-tab", has_text="批注").click()
     page.wait_for_timeout(300)
     n_before = page.locator(".annotation-item").count()
-    page.locator(".annotation-item-actions button", has_text="删除").first.click()
+    page.locator('.annotation-item-actions button[aria-label="删除"]').first.click()
     page.wait_for_timeout(800)
     check("批注删除", page.locator(".annotation-item").count() == n_before - 1)
     # backdrop 关闭测试
@@ -212,7 +212,7 @@ with sync_playwright() as p:
     page.locator(".paper-item").first.click()
     page.wait_for_timeout(3000)
     check("历史 run 出现", page.locator(".run-history-item").count() >= 1)
-    page.locator(".run-history-item button", has_text="查看").first.click()
+    page.locator('.run-history-item button[aria-label="查看"]').first.click()
     page.wait_for_timeout(2500)
     check("历史恢复 5/5", page.locator(".timeline-node.status-done").count() == 5)
     check("历史恢复结果表", page.locator(".results-row").count() >= 1)

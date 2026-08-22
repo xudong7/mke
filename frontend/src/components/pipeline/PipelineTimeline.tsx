@@ -1,4 +1,5 @@
 /* PipelineTimeline.tsx — 横向时间轴：5 步节点 + 连接线 + 步骤详情 */
+import { LoaderCircle, Play, RefreshCw, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import type { PipelineStep, StepId } from "../../types";
 import { StepDetail } from "./StepDetail";
@@ -53,13 +54,23 @@ export function PipelineTimeline({ steps, isStepReady, onRunStep }: Props) {
                 <span className="mono text-2">{(selected.took_ms / 1000).toFixed(1)}s</span>
               )}
               {selected.status === "done" && !selected.skipped && (
-                <button className="btn btn-sm" onClick={() => onRunStep(selected.id)}>
-                  重跑
+                <button
+                  className="btn btn-icon"
+                  onClick={() => onRunStep(selected.id)}
+                  aria-label="重跑"
+                  title="重新运行该步骤"
+                >
+                  <RefreshCw size={14} />
                 </button>
               )}
               {selected.status === "error" && (
-                <button className="btn btn-sm" onClick={() => onRunStep(selected.id)}>
-                  重试
+                <button
+                  className="btn btn-icon"
+                  onClick={() => onRunStep(selected.id)}
+                  aria-label="重试"
+                  title="重试该步骤"
+                >
+                  <RotateCcw size={14} />
                 </button>
               )}
               {(selected.status === "pending" || selected.status === "running") && (
@@ -68,7 +79,17 @@ export function PipelineTimeline({ steps, isStepReady, onRunStep }: Props) {
                   onClick={() => onRunStep(selected.id)}
                   disabled={!isStepReady(selected.id) || selected.status === "running"}
                 >
-                  {selected.status === "running" ? "处理中…" : "运行"}
+                  {selected.status === "running" ? (
+                    <>
+                      <LoaderCircle size={14} className="animate-spin" />
+                      处理中…
+                    </>
+                  ) : (
+                    <>
+                      <Play size={14} />
+                      运行
+                    </>
+                  )}
                 </button>
               )}
             </div>

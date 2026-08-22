@@ -113,7 +113,7 @@ with sync_playwright() as p:
     first_run = page.locator(".run-history-item").first
     check("历史 run 状态 done 5/5",
           "status-done" in (first_run.locator(".dot").get_attribute("class") or ""))
-    page.locator(".run-history-item button", has_text="查看").first.click()
+    page.locator('.run-history-item button[aria-label="查看"]').first.click()
     page.wait_for_timeout(2500)
     done_nodes = page.locator(".timeline-node.status-done").count()
     check("查看历史 → 看板完整恢复（5 节点 done）", done_nodes == 5, f"done={done_nodes}")
@@ -122,7 +122,7 @@ with sync_playwright() as p:
 
     # 7. 重新运行 → 新 run
     runs_before = page.locator(".run-history-item").count()
-    page.locator(".run-history-item button", has_text="重新运行").first.click()
+    page.locator('.run-history-item button[aria-label="重新运行"]').first.click()
     page.wait_for_timeout(2000)
     runs_after_wait = page.locator(".run-history-item").count()
     check("重新运行 → 新 run 出现（运行中）", runs_after_wait >= runs_before,
@@ -175,7 +175,7 @@ with sync_playwright() as p:
     page.locator(".kanban-tab", has_text="批注").click()
     page.wait_for_timeout(300)
     n_before = page.locator(".annotation-item").count()
-    page.locator(".annotation-item-actions button", has_text="删除").first.click()
+    page.locator('.annotation-item-actions button[aria-label="删除"]').first.click()
     page.wait_for_timeout(800)
     check("批注删除", page.locator(".annotation-item").count() == n_before - 1)
 

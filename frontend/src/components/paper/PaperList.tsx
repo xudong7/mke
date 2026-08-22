@@ -1,4 +1,5 @@
 /* PaperList.tsx — 左侧论文列表（只显示已上传的 PDF）+ 上传按钮 */
+import { Upload } from "lucide-react";
 import { useRef } from "react";
 import type { Paper } from "../../types";
 import { uploadPdf } from "../../api/client";
@@ -27,6 +28,7 @@ export function PaperList({ papers, selectedId, onSelect, onUploaded }: Props) {
       <div className="paper-list-header">
         <span className="paper-list-title">已上传论文</span>
         <button className="btn btn-sm" onClick={() => fileRef.current?.click()}>
+          <Upload size={14} />
           上传 PDF
         </button>
         <input

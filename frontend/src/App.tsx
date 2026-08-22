@@ -1,4 +1,5 @@
 /* App.tsx — 三区布局（左/中/右均可折叠）：左=论文列表+运行历史，中=PDF 查看器，右=流程看板+批注 */
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { HealthInfo, Paper, RunSummary } from "./types";
 import { errText, fetchHealth, fetchPaperText, fetchPapers, fetchRun, fetchRuns } from "./api/client";
@@ -157,8 +158,14 @@ export default function App() {
             </aside>
           </>
         ) : (
-          <div className="sidebar-rail" onClick={() => setLeftOpen(true)} title="展开论文库">
-            ›
+          <div
+            className="sidebar-rail"
+            onClick={() => setLeftOpen(true)}
+            title="展开论文库"
+            role="button"
+            aria-label="展开论文库"
+          >
+            <ChevronRight size={14} />
           </div>
         )}
 
@@ -173,8 +180,9 @@ export default function App() {
           onClick={() => setCenterOpen((v) => !v)}
           title={centerOpen ? "折叠论文预览" : "展开论文预览"}
           role="button"
+          aria-label={centerOpen ? "折叠论文预览" : "展开论文预览"}
         >
-          {centerOpen ? <span className="edge-strip-grip" /> : "‹"}
+          {centerOpen ? <span className="edge-strip-grip" /> : <ChevronLeft size={14} />}
         </div>
 
         {rightOpen ? (
@@ -208,8 +216,14 @@ export default function App() {
             </div>
           </>
         ) : (
-          <div className="sidebar-rail rail-right" onClick={() => setRightOpen(true)} title="展开流程看板">
-            ‹
+          <div
+            className="sidebar-rail rail-right"
+            onClick={() => setRightOpen(true)}
+            title="展开流程看板"
+            role="button"
+            aria-label="展开流程看板"
+          >
+            <ChevronLeft size={14} />
           </div>
         )}
       </main>

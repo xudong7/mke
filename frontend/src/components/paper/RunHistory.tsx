@@ -1,4 +1,5 @@
 /* RunHistory.tsx — 选中论文的历史运行记录（查看 / 重新运行） */
+import { Eye, RotateCcw } from "lucide-react";
 import type { RunSummary } from "../../types";
 
 interface Props {
@@ -53,16 +54,23 @@ export function RunHistory({ runs, currentRunId, busy, onLoad, onRerun }: Props)
             </span>
           </div>
           <div className="run-history-actions">
-            <button className="btn btn-sm" onClick={() => onLoad(r.id)} disabled={busy}>
-              查看
+            <button
+              className="btn btn-icon"
+              onClick={() => onLoad(r.id)}
+              disabled={busy}
+              aria-label="查看"
+              title="查看该次运行记录"
+            >
+              <Eye size={14} />
             </button>
             <button
-              className="btn btn-sm"
+              className="btn btn-icon"
               onClick={onRerun}
               disabled={busy || r.status === "running"}
+              aria-label="重新运行"
               title="以该论文重新运行完整流水线（新开一次运行记录）"
             >
-              重新运行
+              <RotateCcw size={14} />
             </button>
           </div>
         </div>
