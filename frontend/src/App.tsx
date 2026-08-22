@@ -124,41 +124,20 @@ export default function App() {
   return (
     <div className="app">
       <main className={`app-main${wideMode ? " wide" : ""}`}>
-        {leftOpen ? (
-          <>
-            <aside className="sidebar-left">
-              <PaperBrowser
-                papers={uploadPapers}
-                selected={selected}
-                runs={runs}
-                currentRunId={pipeline.runId}
-                busy={pipeline.runStatus === "running"}
-                onSelectPaper={(p) => void selectPaper(p)}
-                onUploaded={handleUploaded}
-                onLoadRun={(rid) => void handleLoadRun(rid)}
-                onRerunRun={handleRerunRun}
-              />
-              <div
-                className="panel-handle panel-handle-left"
-                onClick={() => setLeftOpen(false)}
-                title="折叠论文库"
-                role="button"
-                aria-label="折叠论文库"
-              >
-                <ChevronLeft size={14} />
-              </div>
-            </aside>
-          </>
-        ) : (
-          <div
-            className="panel-handle panel-handle-float"
-            onClick={() => setLeftOpen(true)}
-            title="展开论文库"
-            role="button"
-            aria-label="展开论文库"
-          >
-            <ChevronRight size={14} />
-          </div>
+        {leftOpen && (
+          <aside className="sidebar-left">
+            <PaperBrowser
+              papers={uploadPapers}
+              selected={selected}
+              runs={runs}
+              currentRunId={pipeline.runId}
+              busy={pipeline.runStatus === "running"}
+              onSelectPaper={(p) => void selectPaper(p)}
+              onUploaded={handleUploaded}
+              onLoadRun={(rid) => void handleLoadRun(rid)}
+              onRerunRun={handleRerunRun}
+            />
+          </aside>
         )}
 
         <section className="pane-center">

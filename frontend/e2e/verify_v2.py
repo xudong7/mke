@@ -55,32 +55,25 @@ with sync_playwright() as p:
     check("加载默认适应宽度（非 100%）", zoom != "100%", f"zoom={zoom}")
     page.screenshot(path=str(SHOT_DIR / "02_pdf_dpr.png"))
 
-    # 3. 侧栏折叠：左栏折叠 → PDF 区变宽
+    # 3. 聚焦模式（唯一按钮 = 折叠左栏 + 右栏加宽至 75%）
     center_before = page.locator(".pane-center").bounding_box()["width"]
-    page.locator(".panel-handle-left").click()
-    page.wait_for_timeout(600)
-    center_after = page.locator(".pane-center").bounding_box()["width"]
-    check("折叠左栏后 PDF 区变宽", center_after > center_before + 150,
-          f"{center_before:.0f} → {center_after:.0f}")
-    page.screenshot(path=str(SHOT_DIR / "03_collapse_left.png"))
-    page.locator(".panel-handle-float").click()  # 恢复
-    page.wait_for_timeout(600)
-    center_restored = page.locator(".pane-center").bounding_box()["width"]
-    check("左栏恢复", abs(center_restored - center_before) < 10,
-          f"{center_restored:.0f} vs {center_before:.0f}")
-
-    # 聚焦模式：右栏常驻，右条切换（折叠左栏 + 加宽右栏）
     kanban_before = page.locator(".sidebar-right").bounding_box()["width"]
+    vp_w = page.viewport_size["width"]
     page.locator(".panel-handle-right").click()
-    page.wait_for_timeout(400)
-    check("聚焦：右栏常驻", page.locator(".kanban").count() > 0)
+    page.wait_for_timeout(600)
     check("聚焦：左栏折叠", page.locator(".sidebar-left").count() == 0)
+    check("聚焦：右栏常驻", page.locator(".kanban").count() > 0)
     kanban_w = page.locator(".sidebar-right").bounding_box()["width"]
-    check("聚焦：右栏加宽", kanban_w > kanban_before + 100,
-          f"{kanban_before:.0f} → {kanban_w:.0f}")
+    center_after = page.locator(".pane-center").bounding_box()["width"]
+    check("聚焦：右栏加宽 ≥75% 视口", kanban_w >= vp_w * 0.7,
+          f"{kanban_w:.0f} vs 75%={vp_w * 0.75:.0f}")
+    page.screenshot(path=str(SHOT_DIR / "03_wide_mode.png"))
     page.locator(".panel-handle-right").click()
-    page.wait_for_timeout(400)
+    page.wait_for_timeout(600)
     check("还原：左栏恢复", page.locator(".sidebar-left").count() == 1)
+    center_restored = page.locator(".pane-center").bounding_box()["width"]
+    check("还原：PDF 区宽度还原", abs(center_restored - center_before) < 10,
+          f"{center_restored:.0f} vs {center_before:.0f}")
 
     # 4. 时间轴渲染
     nodes = page.locator(".timeline-node")

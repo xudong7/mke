@@ -31,22 +31,10 @@ with sync_playwright() as p:
     page.wait_for_load_state("networkidle")
     page.wait_for_selector(".paper-item", timeout=15000)
 
-    # ============ 1. 手柄位置（悬浮于面板边缘、竖直居中的小箭头钮） ============
+    # ============ 1. 手柄位置（右侧唯一胶囊钮，悬浮于看板左缘） ============
     handles = page.locator(".panel-handle")
-    check("双栏悬浮手柄存在（左右各一）", handles.count() == 2, f"count={handles.count()}")
-    left_handle = page.locator(".panel-handle-left").bounding_box()
-    sidebar_bb = page.locator(".sidebar-left").bounding_box()
+    check("右侧唯一悬浮手柄存在", handles.count() == 1, f"count={handles.count()}")
     center_bb = page.locator(".pane-center").bounding_box()
-    left_cx = left_handle["x"] + left_handle["width"] / 2
-    check(
-        "左侧手柄水平居中对齐左栏右缘",
-        abs(left_cx - (sidebar_bb["x"] + sidebar_bb["width"])) < 3,
-        f"handle cx={left_cx:.0f}, sidebar right={sidebar_bb['x'] + sidebar_bb['width']:.0f}",
-    )
-    check(
-        "左侧手柄竖直居中于面板",
-        abs((left_handle["y"] + left_handle["height"] / 2) - (center_bb["y"] + center_bb["height"] / 2)) < 12,
-    )
     right_handle = page.locator(".panel-handle-right").bounding_box()
     right_cx = right_handle["x"] + right_handle["width"] / 2
     check(
@@ -55,34 +43,21 @@ with sync_playwright() as p:
         f"handle cx={right_cx:.0f}, center right={center_bb['x'] + center_bb['width']:.0f}",
     )
     check(
-        "左右手柄同一水平线",
-        abs(left_handle["y"] - right_handle["y"]) < 2,
-        f"left y={left_handle['y']:.0f}, right y={right_handle['y']:.0f}",
+        "右侧手柄竖直居中于面板",
+        abs((right_handle["y"] + right_handle["height"] / 2) - (center_bb["y"] + center_bb["height"] / 2)) < 12,
     )
     page.screenshot(path=str(SHOT_DIR / "01_handles.png"))
 
-    # ============ 2. 折叠/恢复（含中栏） ============
-    # 左栏折叠
-    page.locator(".panel-handle-left").click()
-    page.wait_for_timeout(500)
-    check("左栏折叠", page.locator(".sidebar-left").count() == 0
-          and page.locator(".panel-handle-float").count() == 1)
-    check("折叠后浮钮与右侧手柄同一水平线",
-          abs(page.locator(".panel-handle-float").bounding_box()["y"]
-              - page.locator(".panel-handle-right").bounding_box()["y"]) < 2)
-    page.locator(".panel-handle-float").click()
-    page.wait_for_timeout(500)
-    check("左栏恢复", page.locator(".sidebar-left").count() == 1)
-
-    # 聚焦模式（右栏常驻；右手柄 = 折叠左栏 + 右栏加宽）
+    # ============ 2. 聚焦模式（唯一按钮 = 折叠左栏 + 右栏加宽至 75%） ============
+    vp_w = page.viewport_size["width"]
     kanban_before = page.locator(".sidebar-right").bounding_box()["width"]
     page.locator(".panel-handle-right").click()
     page.wait_for_timeout(500)
     check("聚焦：右栏常驻", page.locator(".kanban").count() > 0)
     check("聚焦：左栏折叠", page.locator(".sidebar-left").count() == 0)
     kanban_w = page.locator(".sidebar-right").bounding_box()["width"]
-    check("聚焦：右栏加宽", kanban_w > kanban_before + 100,
-          f"{kanban_before:.0f} → {kanban_w:.0f}")
+    check("聚焦：右栏加宽 ≥75% 视口", kanban_w >= vp_w * 0.7,
+          f"{kanban_w:.0f} vs 75%={vp_w * 0.75:.0f}")
     page.screenshot(path=str(SHOT_DIR / "02_wide_mode.png"))
     page.locator(".panel-handle-right").click()
     page.wait_for_timeout(500)

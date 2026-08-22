@@ -271,15 +271,8 @@ textarea:focus-visible {
   background: var(--surface-2);
   color: var(--text);
 }
-.panel-handle-left {
-  right: -11px;
-}
 .panel-handle-right {
   left: -11px;
-}
-/* 左栏折叠后的浮动展开按钮（与面板悬浮手柄同一风格） */
-.panel-handle-float {
-  left: 10px;
 }
 .pane-center {
   flex: 1;
@@ -570,9 +563,9 @@ textarea:focus-visible {
   border-bottom: 1px solid var(--border);
   margin-bottom: 12px;
 }
-/* 聚焦模式：折叠左栏后右栏加宽 */
+/* 聚焦模式：折叠左栏后右栏加宽至 75% 视口宽 */
 .app-main.wide .sidebar-right-wrap {
-  width: 800px;
+  width: 75%;
   min-width: 720px;
 }
 .kanban-llm {
