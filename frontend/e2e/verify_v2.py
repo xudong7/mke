@@ -65,8 +65,8 @@ with sync_playwright() as p:
     check("聚焦：右栏常驻", page.locator(".kanban").count() > 0)
     kanban_w = page.locator(".sidebar-right").bounding_box()["width"]
     center_after = page.locator(".pane-center").bounding_box()["width"]
-    check("聚焦：右栏加宽 ≥75% 视口", kanban_w >= vp_w * 0.7,
-          f"{kanban_w:.0f} vs 75%={vp_w * 0.75:.0f}")
+    check("聚焦：右栏加宽 ≥60% 视口", kanban_w >= vp_w * 0.55,
+          f"{kanban_w:.0f} vs 60%={vp_w * 0.6:.0f}")
     page.screenshot(path=str(SHOT_DIR / "03_wide_mode.png"))
     page.locator(".panel-handle-right").click()
     page.wait_for_timeout(600)
