@@ -247,18 +247,19 @@ textarea:focus-visible {
   flex-direction: column;
   overflow-y: auto;
 }
-/* 折叠手柄：悬浮于面板边缘的竖直居中箭头钮（不占横向空间） */
+/* 折叠手柄：悬浮于面板边缘的竖直胶囊箭头钮（不占横向空间） */
 .panel-handle {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   z-index: 5;
-  width: 20px;
-  height: 36px;
+  width: 22px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border);
+  border-radius: 999px;
   background: var(--surface);
   box-shadow: var(--shadow-sm);
   color: var(--text-2);
@@ -271,17 +272,14 @@ textarea:focus-visible {
   color: var(--text);
 }
 .panel-handle-left {
-  right: -10px;
-  border-radius: 8px 0 0 8px;
+  right: -11px;
 }
 .panel-handle-right {
-  left: -10px;
-  border-radius: 0 8px 8px 0;
+  left: -11px;
 }
 /* 左栏折叠后的浮动展开按钮（与面板悬浮手柄同一风格） */
 .panel-handle-float {
   left: 10px;
-  border-radius: 9px;
 }
 .pane-center {
   flex: 1;

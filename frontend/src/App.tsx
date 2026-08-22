@@ -145,7 +145,7 @@ export default function App() {
                 role="button"
                 aria-label="折叠论文库"
               >
-                <ChevronLeft size={13} />
+                <ChevronLeft size={14} />
               </div>
             </aside>
           </>
@@ -157,7 +157,7 @@ export default function App() {
             role="button"
             aria-label="展开论文库"
           >
-            <ChevronRight size={13} />
+            <ChevronRight size={14} />
           </div>
         )}
 
@@ -193,7 +193,7 @@ export default function App() {
             role="button"
             aria-label="聚焦模式：折叠左栏、加宽结果面板"
           >
-            {wideMode ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+            {wideMode ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </div>
         </div>
       </main>
