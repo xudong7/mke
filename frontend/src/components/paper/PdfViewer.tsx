@@ -14,6 +14,7 @@ import {
 import * as pdfjsLib from "pdfjs-dist";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { Maximize, ZoomIn, ZoomOut } from "lucide-react";
 import { pdfUrl } from "../../api/client";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -219,20 +220,21 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
   return (
     <div className="pdf-viewer">
       <div className="viewer-toolbar">
-        <button className="btn btn-sm" onClick={zoomOut} disabled={!pdf} title="缩小">
-          −
+        <button className="btn btn-icon" onClick={zoomOut} disabled={!pdf} aria-label="缩小" title="缩小">
+          <ZoomOut size={14} />
         </button>
         <span className="zoom-label mono">{Math.round(scale * 100)}%</span>
-        <button className="btn btn-sm" onClick={zoomIn} disabled={!pdf} title="放大">
-          +
+        <button className="btn btn-icon" onClick={zoomIn} disabled={!pdf} aria-label="放大" title="放大">
+          <ZoomIn size={14} />
         </button>
         <button
-          className="btn btn-sm"
+          className="btn btn-icon"
           onClick={() => void fitWidth()}
           disabled={!pdf}
+          aria-label="适应宽度"
           title="适应宽度"
         >
-          适应
+          <Maximize size={14} />
         </button>
         <span className="toolbar-spacer" />
         <span className="page-nav mono">
