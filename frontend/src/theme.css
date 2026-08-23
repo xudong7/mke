@@ -694,14 +694,6 @@ textarea:focus-visible {
   gap: 6px;
   flex-shrink: 0;
 }
-.run-badge {
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
-  font-size: 11px;
-  color: var(--text-2);
-  background: var(--surface);
-}
 .step-skipped {
   margin-top: 8px;
   padding: 6px 10px;
