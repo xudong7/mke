@@ -1,5 +1,5 @@
 /* PipelineKanban.tsx — 流程看板：时间轴/结果表 + 批注 tab（看板 | 批注(n)） */
-import { Cpu, LayoutDashboard, MessageSquare, Play, RotateCcw } from "lucide-react";
+import { Cpu, LayoutDashboard, MessageSquare, Play } from "lucide-react";
 import { useState } from "react";
 import type { Annotation, ExtractRecord, PipelineStep, RunStatus, StepId } from "../../types";
 import { PipelineTimeline } from "./PipelineTimeline";
@@ -15,7 +15,6 @@ interface Props {
   isStepReady: (id: StepId) => boolean;
   onRunStep: (id: StepId) => void;
   onRunAll: () => void;
-  onReset: () => void;
   /* 结果批注（v2/v3） */
   annotations: Annotation[];
   onSaveAnnotation: (
@@ -36,7 +35,6 @@ export function PipelineKanban({
   isStepReady,
   onRunStep,
   onRunAll,
-  onReset,
   annotations,
   onSaveAnnotation,
   onDeleteAnnotation,
@@ -45,7 +43,6 @@ export function PipelineKanban({
 }: Props) {
   const [tab, setTab] = useState<"board" | "annotations">("board");
   const anyRunning = runStatus === "running";
-  const anyDone = steps.some((s) => s.status === "done");
 
   return (
     <div className="kanban">
@@ -76,9 +73,6 @@ export function PipelineKanban({
           >
             <Cpu size={14} />
           </span>
-          <button className="btn btn-icon" onClick={onReset} disabled={!anyDone} aria-label="重置" title="重置全部步骤状态">
-            <RotateCcw size={14} />
-          </button>
           <button className="btn btn-primary" onClick={onRunAll} disabled={anyRunning}>
             <Play size={14} />
             全部运行

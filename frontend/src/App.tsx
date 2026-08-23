@@ -156,7 +156,6 @@ export default function App() {
               isStepReady={pipeline.isStepReady}
               onRunStep={(id) => void pipeline.runStep(id)}
               onRunAll={() => void pipeline.runAll()}
-              onReset={pipeline.reset}
               annotations={annotationsApi.annotations}
               onSaveAnnotation={handleSaveAnnotation}
               onDeleteAnnotation={(id) => annotationsApi.remove(id)}
