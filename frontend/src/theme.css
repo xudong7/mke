@@ -301,7 +301,8 @@ textarea:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 12px;
+  height: 34px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--border);
 }
 .paper-list-title {
@@ -416,7 +417,8 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
+  height: 34px;
+  padding: 0 10px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -561,7 +563,7 @@ textarea:focus-visible {
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 /* 聚焦模式：折叠左栏后右栏加宽至 60% 视口宽 */
 .app-main.wide .sidebar-right-wrap {
@@ -622,9 +624,6 @@ textarea:focus-visible {
   border-radius: var(--radius);
   min-width: 72px;
 }
-.timeline-node:hover:not(.active) .dot {
-  filter: brightness(0.8);
-}
 .timeline-node.active {
   background: transparent;
 }
@@ -637,6 +636,12 @@ textarea:focus-visible {
 .timeline-node .dot {
   width: 14px;
   height: 14px;
+  opacity: 0.35;
+  transition: opacity 0.15s;
+}
+.timeline-node:hover .dot,
+.timeline-node.active .dot {
+  opacity: 1;
 }
 .timeline-node.status-pending .dot {
   background: var(--gray-300);
@@ -982,7 +987,7 @@ textarea:focus-visible {
   color: var(--text-3);
 }
 .results-row.has-annotation {
-  border-left: 3px solid var(--signal-yellow);
+  background: var(--signal-yellow-soft);
 }
 .results-row.flash {
   animation: row-flash 1.5s ease-out;
@@ -1072,7 +1077,7 @@ textarea:focus-visible {
 .kanban-tab {
   border: none;
   background: transparent;
-  padding: 11px 12px;
+  padding: 6px 12px 7px;
   font-size: 13px;
   line-height: 1.4;
   color: var(--text-2);
@@ -1181,7 +1186,9 @@ textarea:focus-visible {
 .annotation-editor {
   padding: 12px;
   margin-bottom: 12px;
-  border-left: 3px solid var(--signal-yellow);
+  border: 1px solid var(--signal-yellow-border);
+  border-radius: var(--radius);
+  background: var(--signal-yellow-soft);
 }
 .editor-label {
   font-size: 12px;
