@@ -1,7 +1,28 @@
 /* PipelineTimeline.tsx — 横向时间轴：5 步节点 + 连接线 + 步骤详情 */
+import {
+  Circle,
+  Database,
+  FileText,
+  LoaderCircle,
+  Play,
+  Quote,
+  RefreshCw,
+  RotateCcw,
+  Route,
+  Sigma,
+  type LucideIcon,
+} from "lucide-react";
 import { useState } from "react";
 import type { PipelineStep, StepId } from "../../types";
 import { StepDetail } from "./StepDetail";
+
+const STEP_ICONS: Record<string, LucideIcon> = {
+  parse: FileText,
+  route: Route,
+  extract: Database,
+  cite: Quote,
+  structurize: Sigma,
+};
 
 interface Props {
   steps: PipelineStep[];
@@ -18,6 +39,7 @@ export function PipelineTimeline({ steps, isStepReady, onRunStep }: Props) {
       <div className="timeline-track">
         {steps.map((s, i) => {
           const ready = isStepReady(s.id);
+          const Icon = STEP_ICONS[s.id] ?? Circle;
           return (
             <div key={s.id} className="timeline-segment">
               <button
@@ -25,7 +47,9 @@ export function PipelineTimeline({ steps, isStepReady, onRunStep }: Props) {
                 onClick={() => setSelectedId(s.id)}
                 title={s.description}
               >
-                <span className="dot" />
+                <span className="timeline-icon">
+                  <Icon size={16} />
+                </span>
                 <span className="timeline-label">{s.label.replace(/^[①-⑤]\s*/, "")}</span>
                 {s.took_ms !== undefined && (
                   <span className="timeline-duration mono">{(s.took_ms / 1000).toFixed(1)}s</span>
@@ -53,13 +77,23 @@ export function PipelineTimeline({ steps, isStepReady, onRunStep }: Props) {
                 <span className="mono text-2">{(selected.took_ms / 1000).toFixed(1)}s</span>
               )}
               {selected.status === "done" && !selected.skipped && (
-                <button className="btn btn-sm" onClick={() => onRunStep(selected.id)}>
-                  重跑
+                <button
+                  className="btn btn-icon"
+                  onClick={() => onRunStep(selected.id)}
+                  aria-label="重跑"
+                  title="重新运行该步骤"
+                >
+                  <RefreshCw size={14} />
                 </button>
               )}
               {selected.status === "error" && (
-                <button className="btn btn-sm" onClick={() => onRunStep(selected.id)}>
-                  重试
+                <button
+                  className="btn btn-icon"
+                  onClick={() => onRunStep(selected.id)}
+                  aria-label="重试"
+                  title="重试该步骤"
+                >
+                  <RotateCcw size={14} />
                 </button>
               )}
               {(selected.status === "pending" || selected.status === "running") && (
@@ -68,7 +102,17 @@ export function PipelineTimeline({ steps, isStepReady, onRunStep }: Props) {
                   onClick={() => onRunStep(selected.id)}
                   disabled={!isStepReady(selected.id) || selected.status === "running"}
                 >
-                  {selected.status === "running" ? "处理中…" : "运行"}
+                  {selected.status === "running" ? (
+                    <>
+                      <LoaderCircle size={14} className="animate-spin" />
+                      处理中…
+                    </>
+                  ) : (
+                    <>
+                      <Play size={14} />
+                      运行
+                    </>
+                  )}
                 </button>
               )}
             </div>

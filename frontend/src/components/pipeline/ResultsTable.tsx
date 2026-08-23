@@ -1,4 +1,5 @@
 /* ResultsTable.tsx — 抽取结果表：关键列 + 行/字段级批注（hover 触发 + 浮层，不改原结果） */
+import { Flag, MessageSquarePlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Annotation, ExtractRecord } from "../../types";
 import { AnnotationPopover } from "../annotation/AnnotationPopover";
@@ -156,14 +157,15 @@ function RowBlock({
           <span className="row-index">{index + 1}</span>
           {hasAnno && <span className="anno-dot" title={`${rowAnnos.length} 条批注`} />}
           <button
-            className="btn btn-sm anno-add"
+            className="btn btn-icon anno-add"
             onClick={(e) => {
               e.stopPropagation();
               onAnnotate({ record_index: index }, e);
             }}
+            aria-label="为这条记录添加批注"
             title="为这条记录添加批注"
           >
-            ＋批注
+            <MessageSquarePlus size={13} />
           </button>
         </td>
         {COLUMNS.map((c) => (
@@ -196,14 +198,15 @@ function AnnotatableValue({
     <span className="annotatable-value">
       <span className="mini-k mono">{label}:</span> {text}
       <button
-        className="btn btn-sm flag-btn"
+        className="btn btn-icon flag-btn"
         onClick={(e) => {
           e.stopPropagation();
           onAnnotate(e);
         }}
+        aria-label={`为字段「${label}」添加批注`}
         title={`为字段「${label}」添加批注`}
       >
-        ⚑
+        <Flag size={12} />
       </button>
     </span>
   );

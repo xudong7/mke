@@ -1,4 +1,5 @@
 /* App.tsx — 三区布局（左/中/右均可折叠）：左=论文列表+运行历史，中=PDF 查看器，右=流程看板+批注 */
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { HealthInfo, Paper, RunSummary } from "./types";
 import { errText, fetchHealth, fetchPaperText, fetchPapers, fetchRun, fetchRuns } from "./api/client";
@@ -16,8 +17,8 @@ export default function App() {
   const [text, setText] = useState<string>("");
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [leftOpen, setLeftOpen] = useState(true);
-  const [centerOpen, setCenterOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
+  /** 聚焦模式：折叠左栏 + 加宽右栏（右栏始终常驻） */
+  const [wideMode, setWideMode] = useState(false);
   /** 批注列表点击 → 滚动到对应记录 */
   const [recordJump, setRecordJump] = useState<{ index: number; token: number } | null>(null);
 
@@ -91,12 +92,6 @@ export default function App() {
     [pipeline, papers, selected?.id],
   );
 
-  /** 历史 → 重新运行：新开一次 run，全量执行 */
-  const handleRerunRun = useCallback(() => {
-    if (pipeline.runStatus === "running") return;
-    void pipeline.runAll({ fresh: true });
-  }, [pipeline]);
-
   const handleSaveAnnotation = useCallback(
     async (
       target: { record_index: number; field?: string | null; value_snapshot?: string | null },
@@ -112,106 +107,65 @@ export default function App() {
   }, []);
 
   const uploadPapers = useMemo(() => papers.filter((p) => p.source === "upload"), [papers]);
-  const paperLabel = selected?.title || selected?.id || "";
+
+  /** 聚焦模式切换：进入 → 折叠左栏+加宽右栏；退出 → 还原 */
+  const toggleWide = () => {
+    const next = !wideMode;
+    setWideMode(next);
+    setLeftOpen(!next);
+  };
 
   return (
     <div className="app">
-      <header className="app-header">
-        <div className="app-logo">MKE</div>
-        <div className="app-title">介孔材料文献知识自动抽取系统</div>
-        <div className="app-header-right mono">
-          {health && (
-            <>
-              <span className="text-2">模型 {health.model}</span>
-              <span className={`llm-badge ${health.llm_configured ? "ok" : "missing"}`}>
-                {health.llm_configured ? "LLM 已配置" : "未配置 API Key"}
-              </span>
-            </>
-          )}
-        </div>
-      </header>
+      <main className={`app-main${wideMode ? " wide" : ""}`}>
+        {leftOpen && (
+          <aside className="sidebar-left">
+            <PaperBrowser
+              papers={uploadPapers}
+              selected={selected}
+              runs={runs}
+              currentRunId={pipeline.runId}
+              busy={pipeline.runStatus === "running"}
+              onSelectPaper={(p) => void selectPaper(p)}
+              onUploaded={handleUploaded}
+              onLoadRun={(rid) => void handleLoadRun(rid)}
+            />
+          </aside>
+        )}
 
-      <main className={`app-main${centerOpen ? "" : " center-collapsed"}`}>
-        {leftOpen ? (
-          <>
-            <div
-              className="edge-strip edge-strip-left"
-              onClick={() => setLeftOpen(false)}
-              title="折叠论文库"
-              role="button"
-            >
-              <span className="edge-strip-grip" />
-            </div>
-            <aside className="sidebar-left">
-              <PaperBrowser
-                papers={uploadPapers}
-                selected={selected}
-                runs={runs}
-                currentRunId={pipeline.runId}
-                busy={pipeline.runStatus === "running"}
-                onSelectPaper={(p) => void selectPaper(p)}
-                onUploaded={handleUploaded}
-                onLoadRun={(rid) => void handleLoadRun(rid)}
-                onRerunRun={handleRerunRun}
-              />
-            </aside>
-          </>
-        ) : (
-          <div className="sidebar-rail" onClick={() => setLeftOpen(true)} title="展开论文库">
-            ›
+        <section className="pane-center">
+          <PaperViewer paper={selected} text={text} />
+          {papersLoading && <div className="viewer-loading">正在加载论文库…</div>}
+        </section>
+
+        <div className="sidebar-right-wrap">
+          <aside className="sidebar-right">
+            <PipelineKanban
+              steps={pipeline.steps}
+              records={pipeline.records}
+              runStatus={pipeline.runStatus}
+              llmConfigured={health?.llm_configured ?? false}
+              llmModel={health?.model ?? null}
+              isStepReady={pipeline.isStepReady}
+              onRunStep={(id) => void pipeline.runStep(id)}
+              onRunAll={() => void pipeline.runAll()}
+              annotations={annotationsApi.annotations}
+              onSaveAnnotation={handleSaveAnnotation}
+              onDeleteAnnotation={(id) => annotationsApi.remove(id)}
+              onJumpToRecord={handleJumpToRecord}
+              recordJump={recordJump}
+            />
+          </aside>
+          <div
+            className="panel-handle panel-handle-right"
+            onClick={toggleWide}
+            title="聚焦模式：折叠左栏、加宽结果面板"
+            role="button"
+            aria-label="聚焦模式：折叠左栏、加宽结果面板"
+          >
+            {wideMode ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </div>
-        )}
-
-        {centerOpen && (
-          <section className="pane-center">
-            <PaperViewer paper={selected} text={text} />
-            {papersLoading && <div className="viewer-loading">正在加载论文库…</div>}
-          </section>
-        )}
-        <div
-          className={centerOpen ? "edge-strip edge-strip-center" : "sidebar-rail rail-center"}
-          onClick={() => setCenterOpen((v) => !v)}
-          title={centerOpen ? "折叠论文预览" : "展开论文预览"}
-          role="button"
-        >
-          {centerOpen ? <span className="edge-strip-grip" /> : "‹"}
         </div>
-
-        {rightOpen ? (
-          <>
-            <aside className="sidebar-right">
-              <PipelineKanban
-                steps={pipeline.steps}
-                records={pipeline.records}
-                paperLabel={paperLabel}
-                runId={pipeline.runId}
-                runStatus={pipeline.runStatus}
-                llmConfigured={health?.llm_configured ?? false}
-                isStepReady={pipeline.isStepReady}
-                onRunStep={(id) => void pipeline.runStep(id)}
-                onRunAll={() => void pipeline.runAll()}
-                onReset={pipeline.reset}
-                annotations={annotationsApi.annotations}
-                onSaveAnnotation={handleSaveAnnotation}
-                onDeleteAnnotation={(id) => annotationsApi.remove(id)}
-                onJumpToRecord={handleJumpToRecord}
-                recordJump={recordJump}
-              />
-            </aside>
-            <div
-              className="edge-strip edge-strip-right"
-              onClick={() => setRightOpen(false)}
-              title="折叠流程看板"
-              role="button"
-            >
-              <span className="edge-strip-grip" />
-            </div>
-          </>
-        ) : (
-          <div className="sidebar-rail rail-right" onClick={() => setRightOpen(true)} title="展开流程看板">
-            ‹
-          </div>
-        )}
       </main>
     </div>
   );

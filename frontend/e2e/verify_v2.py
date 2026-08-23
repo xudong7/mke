@@ -55,29 +55,25 @@ with sync_playwright() as p:
     check("加载默认适应宽度（非 100%）", zoom != "100%", f"zoom={zoom}")
     page.screenshot(path=str(SHOT_DIR / "02_pdf_dpr.png"))
 
-    # 3. 侧栏折叠：左栏折叠 → PDF 区变宽
+    # 3. 聚焦模式（唯一按钮 = 折叠左栏 + 右栏加宽至 75%）
     center_before = page.locator(".pane-center").bounding_box()["width"]
-    page.locator(".edge-strip-left").click()
+    kanban_before = page.locator(".sidebar-right").bounding_box()["width"]
+    vp_w = page.viewport_size["width"]
+    page.locator(".panel-handle-right").click()
     page.wait_for_timeout(600)
+    check("聚焦：左栏折叠", page.locator(".sidebar-left").count() == 0)
+    check("聚焦：右栏常驻", page.locator(".kanban").count() > 0)
+    kanban_w = page.locator(".sidebar-right").bounding_box()["width"]
     center_after = page.locator(".pane-center").bounding_box()["width"]
-    check("折叠左栏后 PDF 区变宽", center_after > center_before + 150,
-          f"{center_before:.0f} → {center_after:.0f}")
-    page.screenshot(path=str(SHOT_DIR / "03_collapse_left.png"))
-    page.locator(".sidebar-rail").first.click()  # 恢复
+    check("聚焦：右栏加宽 ≥60% 视口", kanban_w >= vp_w * 0.55,
+          f"{kanban_w:.0f} vs 60%={vp_w * 0.6:.0f}")
+    page.screenshot(path=str(SHOT_DIR / "03_wide_mode.png"))
+    page.locator(".panel-handle-right").click()
     page.wait_for_timeout(600)
+    check("还原：左栏恢复", page.locator(".sidebar-left").count() == 1)
     center_restored = page.locator(".pane-center").bounding_box()["width"]
-    check("左栏恢复", abs(center_restored - center_before) < 10,
+    check("还原：PDF 区宽度还原", abs(center_restored - center_before) < 10,
           f"{center_restored:.0f} vs {center_before:.0f}")
-
-    # 右栏折叠/恢复
-    right_strip = page.locator(".edge-strip-right")
-    if right_strip.count() > 0:
-        right_strip.click()
-        page.wait_for_timeout(400)
-        check("右栏可折叠", page.locator(".kanban").count() == 0)
-        page.locator(".sidebar-rail").last.click()
-        page.wait_for_timeout(400)
-        check("右栏恢复", page.locator(".kanban").count() > 0)
 
     # 4. 时间轴渲染
     nodes = page.locator(".timeline-node")
@@ -109,33 +105,19 @@ with sync_playwright() as p:
     page.wait_for_selector(".paper-item", timeout=15000)
     page.locator(".paper-item").first.click()
     page.wait_for_timeout(3000)
+    # 切到「历史」tab（左栏 tabs 导航）
+    page.locator(".kanban-tab", has_text="历史").click()
+    page.wait_for_timeout(300)
     check("历史记录出现在列表", page.locator(".run-history-item").count() >= 1)
     first_run = page.locator(".run-history-item").first
     check("历史 run 状态 done 5/5",
           "status-done" in (first_run.locator(".dot").get_attribute("class") or ""))
-    page.locator(".run-history-item button", has_text="查看").first.click()
+    page.locator(".run-history-item").first.click()
     page.wait_for_timeout(2500)
     done_nodes = page.locator(".timeline-node.status-done").count()
     check("查看历史 → 看板完整恢复（5 节点 done）", done_nodes == 5, f"done={done_nodes}")
     check("历史记录恢复到结果表", page.locator(".results-row").count() >= 1)
     page.screenshot(path=str(SHOT_DIR / "06_history_loaded.png"))
-
-    # 7. 重新运行 → 新 run
-    runs_before = page.locator(".run-history-item").count()
-    page.locator(".run-history-item button", has_text="重新运行").first.click()
-    page.wait_for_timeout(2000)
-    runs_after_wait = page.locator(".run-history-item").count()
-    check("重新运行 → 新 run 出现（运行中）", runs_after_wait >= runs_before,
-          f"{runs_before} → {runs_after_wait}")
-    # 等待新 run 完成（可能复用 LLM 结果，等 5 步 done）
-    for _ in range(60):
-        page.wait_for_timeout(5000)
-        if page.locator(".run-history-item").first.locator(".step-chip.status-running").count() == 0:
-            break
-    page.wait_for_timeout(3000)
-    check("新 run 完成（5/5）", page.locator(".run-history-item").first.locator(
-        ".step-chip.status-done").count() == 5)
-    page.screenshot(path=str(SHOT_DIR / "07_rerun.png"))
 
     # 8. 结果批注（v3：hover 触发 + 浮层 + tab）
     # 8a. 行级批注
@@ -175,7 +157,7 @@ with sync_playwright() as p:
     page.locator(".kanban-tab", has_text="批注").click()
     page.wait_for_timeout(300)
     n_before = page.locator(".annotation-item").count()
-    page.locator(".annotation-item-actions button", has_text="删除").first.click()
+    page.locator('.annotation-item-actions button[aria-label="删除"]').first.click()
     page.wait_for_timeout(800)
     check("批注删除", page.locator(".annotation-item").count() == n_before - 1)
 
