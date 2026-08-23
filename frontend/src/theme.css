@@ -71,7 +71,8 @@ body {
 .status-running {
   color: var(--signal-yellow);
 }
-.status-running .dot {
+.status-running .dot,
+.status-running .timeline-icon {
   animation: pulse 1.2s ease-in-out infinite;
 }
 .status-done {
@@ -627,25 +628,21 @@ textarea:focus-visible {
 .timeline-node.active {
   background: transparent;
 }
-.timeline-node.active .dot {
+.timeline-node.active .timeline-icon {
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 .timeline-node.active .timeline-label {
   color: var(--primary);
 }
-.timeline-node .dot {
-  width: 14px;
-  height: 14px;
-  opacity: 0.35;
+.timeline-node .timeline-icon {
+  display: inline-flex;
+  border-radius: 8px;
+  opacity: 0.4;
   transition: opacity 0.15s;
 }
-.timeline-node:hover .dot,
-.timeline-node.active .dot {
+.timeline-node:hover .timeline-icon,
+.timeline-node.active .timeline-icon {
   opacity: 1;
-}
-.timeline-node.status-pending .dot {
-  background: var(--gray-300);
-  color: var(--gray-300);
 }
 .timeline-label {
   font-size: 12.5px;
@@ -1075,6 +1072,9 @@ textarea:focus-visible {
   align-self: stretch;
 }
 .kanban-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border: none;
   background: transparent;
   padding: 5px 10px 6px;

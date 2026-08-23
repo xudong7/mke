@@ -1,5 +1,5 @@
 /* PipelineKanban.tsx — 流程看板：时间轴/结果表 + 批注 tab（看板 | 批注(n)） */
-import { Cpu, Play, RotateCcw } from "lucide-react";
+import { Cpu, LayoutDashboard, MessageSquare, Play, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import type { Annotation, ExtractRecord, PipelineStep, RunStatus, StepId } from "../../types";
 import { PipelineTimeline } from "./PipelineTimeline";
@@ -55,12 +55,14 @@ export function PipelineKanban({
             className={`kanban-tab${tab === "board" ? " active" : ""}`}
             onClick={() => setTab("board")}
           >
+            <LayoutDashboard size={14} />
             看板
           </button>
           <button
             className={`kanban-tab${tab === "annotations" ? " active" : ""}`}
             onClick={() => setTab("annotations")}
           >
+            <MessageSquare size={14} />
             批注
             <span className={`count${annotations.length > 0 ? " has" : ""}`}>
               ({annotations.length})
