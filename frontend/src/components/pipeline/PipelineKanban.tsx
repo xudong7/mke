@@ -9,7 +9,6 @@ import { AnnotationPanel } from "../annotation/AnnotationPanel";
 interface Props {
   steps: PipelineStep[];
   records: ExtractRecord[];
-  runId: string | null;
   runStatus: RunStatus | null;
   llmConfigured: boolean;
   llmModel: string | null;
@@ -31,7 +30,6 @@ interface Props {
 export function PipelineKanban({
   steps,
   records,
-  runId,
   runStatus,
   llmConfigured,
   llmModel,
@@ -76,11 +74,6 @@ export function PipelineKanban({
           >
             <Cpu size={14} />
           </span>
-          {runId && (
-            <span className={`run-badge mono status-${runStatus ?? "pending"}`}>
-              run {runId.slice(0, 8)} · {runStatus}
-            </span>
-          )}
           <button className="btn btn-icon" onClick={onReset} disabled={!anyDone} aria-label="重置" title="重置全部步骤状态">
             <RotateCcw size={14} />
           </button>

@@ -150,7 +150,6 @@ export default function App() {
             <PipelineKanban
               steps={pipeline.steps}
               records={pipeline.records}
-              runId={pipeline.runId}
               runStatus={pipeline.runStatus}
               llmConfigured={health?.llm_configured ?? false}
               llmModel={health?.model ?? null}

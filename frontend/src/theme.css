@@ -583,7 +583,7 @@ textarea:focus-visible {
 .kanban-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
 }
 .kanban-steps {
@@ -600,7 +600,7 @@ textarea:focus-visible {
 
 /* 横向时间轴 */
 .timeline {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 .timeline-track {
   display: flex;
@@ -620,9 +620,9 @@ textarea:focus-visible {
   border: none;
   background: transparent;
   cursor: pointer;
-  padding: 6px 8px;
+  padding: 4px 6px;
   border-radius: var(--radius);
-  min-width: 72px;
+  min-width: 64px;
 }
 .timeline-node.active {
   background: transparent;
@@ -669,27 +669,15 @@ textarea:focus-visible {
 .timeline-connector.done {
   background: var(--signal-green);
 }
-/* 时间轴详情区 */
+/* 时间轴详情区（无边框淡灰底，状态由头部 dot 承载） */
 .timeline-detail {
   margin-top: 10px;
-  border: 1px solid var(--border);
-  border-left-width: 3px;
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--surface-2);
   padding: 10px 12px;
 }
 .timeline-detail.status-pending {
-  border-left-color: var(--gray-300);
   opacity: 0.8;
-}
-.timeline-detail.status-running {
-  border-left-color: var(--signal-yellow);
-}
-.timeline-detail.status-done {
-  border-left-color: var(--signal-green);
-}
-.timeline-detail.status-error {
-  border-left-color: var(--signal-red);
 }
 .timeline-detail-head {
   display: flex;
@@ -762,13 +750,15 @@ textarea:focus-visible {
 .step-detail {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   margin-top: 8px;
 }
 .step-subtitle {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
-  color: var(--text-2);
+  letter-spacing: 0.02em;
+  margin-top: 10px;
+  color: var(--text-3);
 }
 .step-raw-toggle {
   align-self: flex-start;
@@ -845,14 +835,24 @@ textarea:focus-visible {
 }
 /* route */
 .analysis-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   align-self: flex-start;
-  padding: 4px 12px;
-  border-radius: var(--radius-pill);
-  background: var(--primary);
-  color: #fff;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--primary);
   font-size: 12.5px;
   font-weight: 600;
+}
+.analysis-badge::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
 }
 .route-reason {
   background: none;
@@ -970,12 +970,12 @@ textarea:focus-visible {
   max-width: 220px;
 }
 .results-table th {
-  background: var(--surface-2);
+  background: transparent;
   font-weight: 600;
   color: var(--text-2);
   position: sticky;
   top: 0;
-  border-bottom: 1px solid var(--border-strong);
+  border-bottom: 2px solid var(--border);
 }
 .results-row {
   cursor: pointer;
