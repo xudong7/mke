@@ -92,12 +92,6 @@ export default function App() {
     [pipeline, papers, selected?.id],
   );
 
-  /** 历史 → 重新运行：新开一次 run，全量执行 */
-  const handleRerunRun = useCallback(() => {
-    if (pipeline.runStatus === "running") return;
-    void pipeline.runAll({ fresh: true });
-  }, [pipeline]);
-
   const handleSaveAnnotation = useCallback(
     async (
       target: { record_index: number; field?: string | null; value_snapshot?: string | null },
@@ -135,7 +129,6 @@ export default function App() {
               onSelectPaper={(p) => void selectPaper(p)}
               onUploaded={handleUploaded}
               onLoadRun={(rid) => void handleLoadRun(rid)}
-              onRerunRun={handleRerunRun}
             />
           </aside>
         )}

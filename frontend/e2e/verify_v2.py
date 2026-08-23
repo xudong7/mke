@@ -105,32 +105,19 @@ with sync_playwright() as p:
     page.wait_for_selector(".paper-item", timeout=15000)
     page.locator(".paper-item").first.click()
     page.wait_for_timeout(3000)
+    # 切到「历史」tab（左栏 tabs 导航）
+    page.locator(".kanban-tab", has_text="历史").click()
+    page.wait_for_timeout(300)
     check("历史记录出现在列表", page.locator(".run-history-item").count() >= 1)
     first_run = page.locator(".run-history-item").first
     check("历史 run 状态 done 5/5",
           "status-done" in (first_run.locator(".dot").get_attribute("class") or ""))
-    page.locator('.run-history-item button[aria-label="查看"]').first.click()
+    page.locator(".run-history-item").first.click()
     page.wait_for_timeout(2500)
     done_nodes = page.locator(".timeline-node.status-done").count()
     check("查看历史 → 看板完整恢复（5 节点 done）", done_nodes == 5, f"done={done_nodes}")
     check("历史记录恢复到结果表", page.locator(".results-row").count() >= 1)
     page.screenshot(path=str(SHOT_DIR / "06_history_loaded.png"))
-
-    # 7. 重新运行 → 新 run
-    runs_before = page.locator(".run-history-item").count()
-    page.locator('.run-history-item button[aria-label="重新运行"]').first.click()
-    page.wait_for_timeout(2000)
-    runs_after_wait = page.locator(".run-history-item").count()
-    check("重新运行 → 新 run 出现（运行中）", runs_after_wait >= runs_before,
-          f"{runs_before} → {runs_after_wait}")
-    # 等待新 run 完成（可能复用 LLM 结果，等 5 步 done）
-    for _ in range(60):
-        page.wait_for_timeout(5000)
-        if page.locator(".timeline-node.status-running").count() == 0:
-            break
-    page.wait_for_timeout(3000)
-    check("新 run 完成（5/5）", page.locator(".timeline-node.status-done").count() == 5)
-    page.screenshot(path=str(SHOT_DIR / "07_rerun.png"))
 
     # 8. 结果批注（v3：hover 触发 + 浮层 + tab）
     # 8a. 行级批注

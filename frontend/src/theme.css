@@ -294,24 +294,8 @@ textarea:focus-visible {
 .paper-list {
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid var(--border);
-  max-height: 55%;
-}
-.paper-list-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  height: 34px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--border);
-}
-.paper-list-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  flex: 1;
+  min-height: 0;
 }
 .paper-list-body {
   flex: 1;
@@ -486,20 +470,10 @@ textarea:focus-visible {
 
 /* ================= 运行历史 ================= */
 .run-history {
+  flex: 1;
+  min-height: 0;
   padding: 10px 12px;
   overflow-y: auto;
-}
-.run-history-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-.run-history-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 600;
 }
 .run-history-empty {
   color: var(--text-3);
@@ -507,14 +481,24 @@ textarea:focus-visible {
   padding: 6px 0;
 }
 .run-history-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 6px 10px;
   margin-bottom: 6px;
   background: var(--surface);
+  cursor: pointer;
 }
-.run-history-item:hover {
+.run-history-item:hover:not(:disabled) {
   background: var(--surface-2);
+}
+.run-history-item:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .run-history-item.current {
   background: var(--primary-soft);

@@ -1,59 +1,21 @@
-/* PaperList.tsx — 左侧论文列表（只显示已上传的 PDF）+ 上传 */
-import { FileUp, Upload } from "lucide-react";
-import { useRef } from "react";
+/* PaperList.tsx — 论文列表（单行条目：状态点 + 标题 + 大小） */
 import type { Paper } from "../../types";
-import { uploadPdf } from "../../api/client";
 
 interface Props {
   papers: Paper[];
   selectedId: string | null;
   onSelect: (paper: Paper) => void;
-  onUploaded: () => void;
 }
 
-export function PaperList({ papers, selectedId, onSelect, onUploaded }: Props) {
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const handleUpload = async (file: File) => {
-    try {
-      await uploadPdf(file);
-      onUploaded();
-    } catch (e) {
-      alert(`上传失败：${e instanceof Error ? e.message : String(e)}`);
-    }
-  };
-
+export function PaperList({ papers, selectedId, onSelect }: Props) {
   return (
-    <div className="paper-list">
-      <div className="paper-list-header">
-        <span className="paper-list-title">
-          <FileUp size={14} />
-          已上传论文
-        </span>
-        <button className="btn btn-sm" onClick={() => fileRef.current?.click()}>
-          <Upload size={14} />
-          上传 PDF
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="application/pdf"
-          style={{ display: "none" }}
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void handleUpload(f);
-            e.target.value = "";
-          }}
-        />
-      </div>
-      <div className="paper-list-body">
-        {papers.length === 0 && (
-          <div className="paper-empty">尚未上传论文。点击「上传 PDF」开始。</div>
-        )}
-        {papers.map((p) => (
-          <PaperItem key={p.id} paper={p} selected={p.id === selectedId} onSelect={onSelect} />
-        ))}
-      </div>
+    <div className="paper-list-body">
+      {papers.length === 0 && (
+        <div className="paper-empty">尚未上传论文。点击右上角上传图标开始。</div>
+      )}
+      {papers.map((p) => (
+        <PaperItem key={p.id} paper={p} selected={p.id === selectedId} onSelect={onSelect} />
+      ))}
     </div>
   );
 }

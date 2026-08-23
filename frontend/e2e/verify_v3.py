@@ -195,8 +195,11 @@ with sync_playwright() as p:
     page.wait_for_selector(".paper-item", timeout=15000)
     page.locator(".paper-item").first.click()
     page.wait_for_timeout(3000)
+    # 切到「历史」tab（左栏 tabs 导航）
+    page.locator(".kanban-tab", has_text="历史").click()
+    page.wait_for_timeout(300)
     check("历史 run 出现", page.locator(".run-history-item").count() >= 1)
-    page.locator('.run-history-item button[aria-label="查看"]').first.click()
+    page.locator(".run-history-item").first.click()
     page.wait_for_timeout(2500)
     check("历史恢复 5/5", page.locator(".timeline-node.status-done").count() == 5)
     check("历史恢复结果表", page.locator(".results-row").count() >= 1)
