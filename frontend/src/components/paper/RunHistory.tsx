@@ -1,5 +1,5 @@
 /* RunHistory.tsx — 选中论文的历史运行记录（查看 / 重新运行） */
-import { Eye, RotateCcw } from "lucide-react";
+import { Eye, History, RotateCcw } from "lucide-react";
 import type { RunSummary } from "../../types";
 
 interface Props {
@@ -14,7 +14,10 @@ export function RunHistory({ runs, currentRunId, busy, onLoad, onRerun }: Props)
   return (
     <div className="run-history">
       <div className="run-history-header">
-        <span>历史解析结果</span>
+        <span className="run-history-title">
+          <History size={14} />
+          历史解析结果
+        </span>
         <span className="mono text-2">{runs.length} 次</span>
       </div>
       {runs.length === 0 && (

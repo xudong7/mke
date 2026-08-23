@@ -307,6 +307,9 @@ textarea:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 .paper-list-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-weight: 500;
   letter-spacing: 0.02em;
 }
@@ -490,8 +493,13 @@ textarea:focus-visible {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: 600;
   margin-bottom: 8px;
+}
+.run-history-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
 }
 .run-history-empty {
   color: var(--text-3);
@@ -504,6 +512,9 @@ textarea:focus-visible {
   padding: 6px 10px;
   margin-bottom: 6px;
   background: var(--surface);
+}
+.run-history-item:hover {
+  background: var(--surface-2);
 }
 .run-history-item.current {
   background: var(--primary-soft);
@@ -564,6 +575,7 @@ textarea:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  height: 34px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 6px;
 }
