@@ -13,6 +13,7 @@ interface Props {
   onUploaded: () => void;
   onLoadRun: (runId: string) => void;
   onRerunRun: () => void;
+  onExportRun: (runId: string) => void;
 }
 
 export function PaperBrowser({
@@ -25,6 +26,7 @@ export function PaperBrowser({
   onUploaded,
   onLoadRun,
   onRerunRun,
+  onExportRun,
 }: Props) {
   return (
     <div className="paper-browser">
@@ -40,6 +42,7 @@ export function PaperBrowser({
         busy={busy}
         onLoad={onLoadRun}
         onRerun={onRerunRun}
+        onExportRun={onExportRun}
       />
     </div>
   );

@@ -5,6 +5,7 @@ import { PipelineTimeline } from "./PipelineTimeline";
 import { ResultsTable } from "./ResultsTable";
 import { LLMCostBanner } from "./LLMCostBanner";
 import { AnnotationPanel } from "../annotation/AnnotationPanel";
+import { ExtractOverlay } from "./ExtractOverlay";
 
 interface Props {
   steps: PipelineStep[];
@@ -17,6 +18,7 @@ interface Props {
   onRunStep: (id: StepId) => void;
   onRunAll: () => void;
   onReset: () => void;
+  onExport: () => void;
   /* 结果批注（v2/v3） */
   annotations: Annotation[];
   onSaveAnnotation: (
@@ -26,6 +28,7 @@ interface Props {
   onDeleteAnnotation: (id: string) => Promise<void>;
   onJumpToRecord: (index: number) => void;
   recordJump: { index: number; token: number } | null;
+  onLocate: (field: string, citations: string[]) => void;
 }
 
 export function PipelineKanban({
@@ -39,11 +42,13 @@ export function PipelineKanban({
   onRunStep,
   onRunAll,
   onReset,
+  onExport,
   annotations,
   onSaveAnnotation,
   onDeleteAnnotation,
   onJumpToRecord,
   recordJump,
+  onLocate,
 }: Props) {
   const [tab, setTab] = useState<"board" | "annotations">("board");
   const anyRunning = runStatus === "running";
@@ -70,6 +75,14 @@ export function PipelineKanban({
           )}
           <button className="btn" onClick={onReset} disabled={!anyDone}>
             重置
+          </button>
+          <button
+            className="btn"
+            onClick={onExport}
+            disabled={records.length === 0}
+            title="导出当前抽取结果为 Excel（3 表格式）"
+          >
+            导出 Excel
           </button>
           <button className="btn btn-primary" onClick={onRunAll} disabled={anyRunning}>
             全部运行
@@ -107,6 +120,7 @@ export function PipelineKanban({
             annotations={annotations}
             onSaveAnnotation={onSaveAnnotation}
             recordJump={recordJump}
+            onLocate={onLocate}
           />
         </>
       ) : (
@@ -119,6 +133,8 @@ export function PipelineKanban({
           }}
         />
       )}
+
+      <ExtractOverlay visible={anyRunning} steps={steps} />
     </div>
   );
 }

@@ -1,12 +1,38 @@
 /* App.tsx — 三区布局（左/中/右均可折叠）：左=论文列表+运行历史，中=PDF 查看器，右=流程看板+批注 */
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { HealthInfo, Paper, RunSummary } from "./types";
-import { errText, fetchHealth, fetchPaperText, fetchPapers, fetchRun, fetchRuns } from "./api/client";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FieldHighlight, HealthInfo, Paper, RunSummary } from "./types";
+import {
+  errText,
+  exportExcel,
+  exportRunExcel,
+  fetchHealth,
+  fetchPaperText,
+  fetchPapers,
+  fetchRun,
+  fetchRuns,
+} from "./api/client";
 import { usePipeline } from "./hooks/usePipeline";
 import { useAnnotations } from "./hooks/useAnnotations";
 import { PaperBrowser } from "./components/paper/PaperBrowser";
-import { PaperViewer } from "./components/paper/PaperViewer";
+import { PaperViewer, type PaperViewerHandle } from "./components/paper/PaperViewer";
 import { PipelineKanban } from "./components/pipeline/PipelineKanban";
+
+/** 提取动画覆盖的基础字段（与 citation_agent 重点关注字段一致） */
+const EXTRACT_FIELDS = [
+  "组装方式",
+  "溶剂体系",
+  "pH值_酸碱浓度",
+  "表面活性剂种类",
+  "表面活性剂浓度",
+  "硅/钛源种类_浓度",
+  "盐种类_浓度",
+  "合成温度",
+  "介孔结构",
+  "比表面积",
+  "孔径",
+  "产物形态",
+  "其他变量",
+];
 
 export default function App() {
   const [health, setHealth] = useState<HealthInfo | null>(null);
@@ -20,6 +46,8 @@ export default function App() {
   const [rightOpen, setRightOpen] = useState(true);
   /** 批注列表点击 → 滚动到对应记录 */
   const [recordJump, setRecordJump] = useState<{ index: number; token: number } | null>(null);
+  /** 原文定位中枢（中间面板） */
+  const viewerRef = useRef<PaperViewerHandle>(null);
 
   const pipeline = usePipeline({
     paperId: selected?.id ?? null,
@@ -70,6 +98,18 @@ export default function App() {
     void fetchPapers().then(setPapers);
   }, []);
 
+  /** 导出当前运行结果到 Excel */
+  const handleExport = useCallback(() => {
+    void exportExcel(pipeline.records, selected?.id).catch((e) =>
+      alert(`导出失败：${errText(e)}`),
+    );
+  }, [pipeline.records, selected?.id]);
+
+  /** 导出历史 run 到 Excel */
+  const handleExportRun = useCallback((runId: string) => {
+    void exportRunExcel(runId).catch((e) => alert(`导出失败：${errText(e)}`));
+  }, []);
+
   /** 历史 → 查看：完整恢复看板状态（零 LLM） */
   const handleLoadRun = useCallback(
     async (runId: string) => {
@@ -110,6 +150,56 @@ export default function App() {
   const handleJumpToRecord = useCallback((index: number) => {
     setRecordJump({ index, token: Date.now() });
   }, []);
+
+  /** 原文定位：结果表引用句 → 中间面板高亮 + 滚动 */
+  const handleLocate = useCallback((field: string, citations: string[]) => {
+    void viewerRef.current?.locate(citations, field);
+  }, []);
+
+  /** 提取过程动画：步骤 running→done 时，驱动中间面板对原文依据做标注框选 */
+  const prevStepsRef = useRef<Record<string, string>>({});
+  useEffect(() => {
+    const cur: Record<string, string> = {};
+    pipeline.steps.forEach((s) => {
+      cur[s.id] = s.status;
+    });
+    const prev = prevStepsRef.current;
+    // 仅在真实执行（running→done）时触发，历史加载/跳过（pending→done）不触发
+    const justDone = (id: string) => cur[id] === "done" && prev[id] === "running";
+
+    if (justDone("extract")) {
+      const fields: FieldHighlight[] = [];
+      for (const r of pipeline.records) {
+        for (const f of EXTRACT_FIELDS) {
+          const v = r[f];
+          if (!v) continue;
+          fields.push({
+            field: f,
+            sentences: (r["字段引用"]?.[f] as string[] | undefined) ?? [],
+            value: String(v),
+          });
+        }
+      }
+      if (fields.length) void viewerRef.current?.animateFields(fields);
+    }
+
+    if (justDone("cite")) {
+      const fields: FieldHighlight[] = [];
+      for (const r of pipeline.records) {
+        for (const [field, sentences] of Object.entries(r["字段引用"] ?? {})) {
+          if (!Array.isArray(sentences) || sentences.length === 0) continue;
+          fields.push({
+            field,
+            sentences: sentences as string[],
+            value: String(r[field] ?? ""),
+          });
+        }
+      }
+      if (fields.length) void viewerRef.current?.animateFields(fields);
+    }
+
+    prevStepsRef.current = cur;
+  }, [pipeline.steps, pipeline.records]);
 
   const uploadPapers = useMemo(() => papers.filter((p) => p.source === "upload"), [papers]);
   const paperLabel = selected?.title || selected?.id || "";
@@ -153,6 +243,7 @@ export default function App() {
                 onUploaded={handleUploaded}
                 onLoadRun={(rid) => void handleLoadRun(rid)}
                 onRerunRun={handleRerunRun}
+                onExportRun={handleExportRun}
               />
             </aside>
           </>
@@ -164,7 +255,7 @@ export default function App() {
 
         {centerOpen && (
           <section className="pane-center">
-            <PaperViewer paper={selected} text={text} />
+            <PaperViewer ref={viewerRef} paper={selected} text={text} />
             {papersLoading && <div className="viewer-loading">正在加载论文库…</div>}
           </section>
         )}
@@ -191,11 +282,13 @@ export default function App() {
                 onRunStep={(id) => void pipeline.runStep(id)}
                 onRunAll={() => void pipeline.runAll()}
                 onReset={pipeline.reset}
+                onExport={handleExport}
                 annotations={annotationsApi.annotations}
                 onSaveAnnotation={handleSaveAnnotation}
                 onDeleteAnnotation={(id) => annotationsApi.remove(id)}
                 onJumpToRecord={handleJumpToRecord}
                 recordJump={recordJump}
+                onLocate={handleLocate}
               />
             </aside>
             <div

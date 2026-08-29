@@ -7,6 +7,7 @@ interface Props {
   busy: boolean;
   onLoad: (runId: string) => void;
   onRerun: () => void;
+  onExportRun: (runId: string) => void;
 }
 
 const STEP_LABELS: Record<string, string> = {
@@ -17,7 +18,7 @@ const STEP_LABELS: Record<string, string> = {
   structurize: "结构化",
 };
 
-export function RunHistory({ runs, currentRunId, busy, onLoad, onRerun }: Props) {
+export function RunHistory({ runs, currentRunId, busy, onLoad, onRerun, onExportRun }: Props) {
   const doneCount = (r: RunSummary) =>
     Object.values(r.step_statuses).filter((s) => s === "done").length;
 
@@ -55,6 +56,14 @@ export function RunHistory({ runs, currentRunId, busy, onLoad, onRerun }: Props)
           <div className="run-history-actions">
             <button className="btn btn-sm" onClick={() => onLoad(r.id)} disabled={busy}>
               查看
+            </button>
+            <button
+              className="btn btn-sm"
+              onClick={() => onExportRun(r.id)}
+              disabled={busy || r.record_count === 0}
+              title={r.record_count === 0 ? "该运行没有可导出的结果" : "导出该运行的抽取结果为 Excel"}
+            >
+              导出
             </button>
             <button
               className="btn btn-sm"

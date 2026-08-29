@@ -9,3 +9,5 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+/* cache-bust: rebuild for fresh asset hashes 2026-08-29 */

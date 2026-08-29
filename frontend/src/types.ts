@@ -101,6 +101,13 @@ export type StepId = "parse" | "route" | "extract" | "cite" | "structurize";
 export type StepStatus = "pending" | "running" | "done" | "error";
 export type RunStatus = "running" | "done" | "failed";
 
+/** 提取动画单条目标：字段 + 原文依据引用句（可选值作关键词兜底） */
+export interface FieldHighlight {
+  field: string;
+  sentences: string[];
+  value?: string;
+}
+
 export interface PipelineStep {
   id: StepId;
   label: string;
