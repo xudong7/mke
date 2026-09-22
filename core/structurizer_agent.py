@@ -1,5 +1,14 @@
 # core/structurizer_agent.py
 import json
+import os
+from concurrent.futures import ThreadPoolExecutor
+
+from .json_utils import loads_lenient
+
+# 逐条串行调用 LLM 是耗时主因（实测 4 条记录 305 s）。
+# 记录之间彼此独立，改为并发；限制并发数以避免触发限流。
+# 可用 MKE_STRUCTURIZE_WORKERS 覆盖（设为 1 即退回串行）。
+_MAX_WORKERS = int(os.environ.get("MKE_STRUCTURIZE_WORKERS", "4"))
 
 def _structurize_single_record(record, client, model_name: str):
     """
@@ -79,8 +88,8 @@ def _structurize_single_record(record, client, model_name: str):
 
     raw = resp.choices[0].message.content
     try:
-        data = json.loads(raw)
-    except json.JSONDecodeError as e:
+        data = loads_lenient(raw)
+    except (json.JSONDecodeError, ValueError) as e:
         print(f"   ⚠️ 结构化单条记录 JSON 解析失败：{e}")
         print("   返回内容前 200 字：", raw[:200].replace("\n", "\\n"))
         # 出错就返回原始记录
@@ -95,14 +104,35 @@ def _structurize_single_record(record, client, model_name: str):
 def structurize_results(results_list, client, model_name: str):
     """
     对结果列表中每一条记录分别调用 _structurize_single_record。
+
+    并发执行（记录之间无依赖），并严格保持原始顺序；单条失败时保留原记录，
+    绝不让一条记录的异常影响其余记录。
     """
     if not results_list:
         return results_list
 
+    workers = max(1, min(_MAX_WORKERS, len(results_list)))
+    print(f"   🔧 正在结构化 {len(results_list)} 条记录（并发 {workers}）...")
+
+    if workers == 1:
+        new_results = []
+        for idx, r in enumerate(results_list):
+            new_results.append(_structurize_single_record(r, client, model_name))
+        return new_results
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [
+            pool.submit(_structurize_single_record, r, client, model_name)
+            for r in results_list
+        ]
+
+    # 按提交顺序取回结果（并发完成顺序不确定，必须显式对齐）
     new_results = []
-    for idx, r in enumerate(results_list):
-        print(f"   🔧 正在结构化第 {idx+1} 条记录...")
-        new_r = _structurize_single_record(r, client, model_name)
-        new_results.append(new_r)
+    for idx, fut in enumerate(futures):
+        try:
+            new_results.append(fut.result())
+        except Exception as e:
+            print(f"   ⚠️ 第 {idx+1} 条记录结构化失败，保留原记录: {e}")
+            new_results.append(results_list[idx])
 
     return new_results

@@ -108,6 +108,8 @@ def step_extract(body: ExtractRequest):
         results = extractor.extract_from_text(body.text, routing=body.routing)
         for r in results:
             r.setdefault("来源文件", "")  # 前端会用 paper_id 回填
+        # 注：空记录剔除 / 非合成记录过滤 / 重复样品合并，在 extract_from_text
+        # 内部按分支完成（简化抽取分支不能按合成条件过滤）。
         results = simple_format_results(results)
         warning = ""
         if not results:
