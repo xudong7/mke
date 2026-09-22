@@ -250,6 +250,28 @@ body {
 .edge-strip-center {
   border-left: 1px solid var(--border);
 }
+/* 中栏分隔条：可左右拖动缩放文献预览 */
+.edge-strip-drag {
+  cursor: col-resize;
+  /* 拖拽手势在触屏上不触发页面滚动 */
+  touch-action: none;
+}
+.edge-strip-drag:hover .edge-strip-grip,
+.edge-strip-drag:active .edge-strip-grip {
+  background: var(--signal-yellow);
+}
+.edge-strip-drag:active {
+  background: var(--surface-2);
+}
+/* 拖拽中：全局禁用文本选中，避免拖出选区 */
+body.col-resizing {
+  user-select: none;
+  cursor: col-resize;
+}
+body.col-resizing iframe,
+body.col-resizing canvas {
+  pointer-events: none;
+}
 .edge-strip-right {
   border-left: 1px solid var(--border);
 }

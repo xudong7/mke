@@ -236,6 +236,8 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
   const pageCountRef = useRef(0);
   /** 动画取消令牌：新动画开始时自增，旧动画在下一次 await 后据此退出 */
   const animateTokenRef = useRef(0);
+  /** 已绘制的高亮描述：缩放/拖拽使页面重挂载后按新 scale 重绘，保证定位结果不消失 */
+  const drawnRef = useRef<Array<{ pageNo: number; span: Span; label: string; cls?: string }>>([]);
   useEffect(() => {
     scaleRef.current = scale;
   }, [scale]);
@@ -262,6 +264,7 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
         setPageCount(doc.numPages);
         pageCountRef.current = doc.numPages;
         pageIndexRef.current = new Map(); // 换论文清空索引
+        drawnRef.current = []; // 换论文清空已记录的高亮
         // 等待布局就绪后按容器宽度 fit
         requestAnimationFrame(() => {
           const container = scrollRef.current;
@@ -300,17 +303,23 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
     setScale(s);
   }, [pdf]);
 
-  /* 侧栏折叠/窗口变化时：仍在 fit 模式则自动重排 */
+  /* 侧栏折叠/拖动分隔条/窗口变化时：仍在 fit 模式则自动重排 */
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
+    let timer: number | undefined;
     const observer = new ResizeObserver(() => {
-      if (fitScaleRef.current !== null && Math.abs(scale - fitScaleRef.current) < 0.001) {
-        void fitWidth();
-      }
+      if (fitScaleRef.current === null || Math.abs(scale - fitScaleRef.current) >= 0.001) return;
+      // 拖动分隔条会连续触发尺寸变化；去抖后只重排一次，
+      // 否则每帧都会 setScale → 整篇页面按新 key 重建（含 canvas 重绘与文本层重建）
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void fitWidth(), 120);
     });
     observer.observe(container);
-    return () => observer.disconnect();
+    return () => {
+      window.clearTimeout(timer);
+      observer.disconnect();
+    };
   }, [scale, fitWidth]);
 
   /* 滚动联动 currentPage */
@@ -368,12 +377,18 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
     [],
   );
 
-  /** 清理所有高亮框 */
-  const clearHighlights = useCallback(() => {
+  /** 只清除高亮框 DOM（保留描述，便于缩放后重绘） */
+  const clearHighlightDom = useCallback(() => {
     scrollRef.current
       ?.querySelectorAll<HTMLElement>(".highlight-box")
       .forEach((el) => el.remove());
   }, []);
+
+  /** 清除 DOM 并丢弃描述（新一轮定位/动画开始时调用） */
+  const resetHighlights = useCallback(() => {
+    clearHighlightDom();
+    drawnRef.current = [];
+  }, [clearHighlightDom]);
 
   /** 跨页定位引用句：精确命中优先，否则取全篇最相似处 */
   const locateCitationText = useCallback(
@@ -434,6 +449,15 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
     [],
   );
 
+  /** 绘制高亮并记录描述（缩放/拖拽后据此重绘） */
+  const drawRemembered = useCallback(
+    (pageNo: number, span: Span, label: string): HTMLElement | null => {
+      drawnRef.current.push({ pageNo, span, label });
+      return drawHighlight(pageNo, span, label);
+    },
+    [drawHighlight],
+  );
+
   /** 滚动到命中页 + 高亮框居中闪烁 */
   const scrollToHighlight = useCallback((box: HTMLElement, pageNo: number) => {
     const shell = scrollRef.current?.querySelector<HTMLElement>(
@@ -469,12 +493,12 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
   const locateSentences = useCallback(
     async (sentences: string[], label: string): Promise<boolean> => {
       if (!pdfRef.current) return false;
-      clearHighlights();
+      resetHighlights();
       for (const sentence of sentences) {
         if (!sentence) continue;
         const hit = await locateCitationText(sentence);
         if (!hit) continue;
-        const box = drawHighlight(hit.pageNo, hit.span, label);
+        const box = drawRemembered(hit.pageNo, hit.span, label);
         if (box) {
           scrollToHighlight(box, hit.pageNo);
           return true;
@@ -483,7 +507,7 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
       // 引用句未命中 → 字段关键词兜底（对齐 mke-main index_v2 的 locateField）
       const kwHit = await searchKeywords(label);
       if (kwHit) {
-        const box = drawHighlight(kwHit.pageNo, kwHit.span, label);
+        const box = drawRemembered(kwHit.pageNo, kwHit.span, label);
         if (box) {
           scrollToHighlight(box, kwHit.pageNo);
           return true;
@@ -491,7 +515,7 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
       }
       return false;
     },
-    [clearHighlights, locateCitationText, searchKeywords, drawHighlight, scrollToHighlight],
+    [resetHighlights, locateCitationText, searchKeywords, drawRemembered, scrollToHighlight],
   );
 
   /** 提取过程动画：逐字段在原文上标注框选（先脉冲 active，再转绿 done） */
@@ -499,7 +523,7 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
     async (fields: FieldHighlight[]): Promise<void> => {
       if (!pdfRef.current) return;
       const token = ++animateTokenRef.current;
-      clearHighlights();
+      resetHighlights();
       for (const f of fields) {
         if (token !== animateTokenRef.current) return;
         const label = f.field;
@@ -512,7 +536,7 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
         if (token !== animateTokenRef.current) return;
         if (!hit) hit = await searchKeywords(label, f.value);
         if (!hit) continue;
-        const box = drawHighlight(hit.pageNo, hit.span, label);
+        const box = drawRemembered(hit.pageNo, hit.span, label);
         if (!box) continue;
 
         const shell = scrollRef.current?.querySelector<HTMLElement>(
@@ -520,6 +544,7 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
         );
         shell?.scrollIntoView({ behavior: "smooth", block: "start" });
         box.classList.add("active");
+        drawnRef.current[drawnRef.current.length - 1].cls = "active";
         await delay(600);
         if (token !== animateTokenRef.current) return;
         box.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -527,11 +552,23 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
         if (token !== animateTokenRef.current) return;
         box.classList.remove("active");
         box.classList.add("done");
+        drawnRef.current[drawnRef.current.length - 1].cls = "done";
         await delay(140);
       }
     },
-    [clearHighlights, locateCitationText, searchKeywords, drawHighlight],
+    [resetHighlights, locateCitationText, searchKeywords, drawRemembered],
   );
+
+  /* 缩放/拖拽改变 scale 时 PageView 会按新 key 重建（旧的高亮框随之销毁），
+     此处按当前 scale 重绘已记录的高亮，使拖动分隔条后定位结果依然可见。 */
+  useEffect(() => {
+    if (!pdf) return;
+    clearHighlightDom();
+    for (const h of drawnRef.current) {
+      const box = drawHighlight(h.pageNo, h.span, h.label);
+      if (box && h.cls) box.classList.add(h.cls);
+    }
+  }, [scale, pdf, clearHighlightDom, drawHighlight]);
 
   useImperativeHandle(
     ref,

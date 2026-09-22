@@ -34,6 +34,22 @@ const EXTRACT_FIELDS = [
   "其他变量",
 ];
 
+/* ---- 中栏分隔条：拖拽调节文献预览宽度（宽 → PDF 适应宽度后放大） ---- */
+/** 右栏最小宽度（与 CSS .sidebar-right 的 min-width 一致） */
+const RIGHT_MIN = 400;
+/** 中栏（文献预览）最小宽度，防止拖到不可读 */
+const CENTER_MIN = 360;
+
+/** 右栏可用的最大宽度：三栏容器宽度 − 左栏与手柄 − 中栏最小值 */
+function maxRightWidth(main: HTMLElement): number {
+  const others = Array.from(main.children).filter(
+    (el) =>
+      !el.classList.contains("sidebar-right") && !el.classList.contains("pane-center"),
+  );
+  const othersW = others.reduce((sum, el) => sum + el.getBoundingClientRect().width, 0);
+  return main.clientWidth - othersW - CENTER_MIN;
+}
+
 export default function App() {
   const [health, setHealth] = useState<HealthInfo | null>(null);
   const [papers, setPapers] = useState<Paper[]>([]);
@@ -44,10 +60,16 @@ export default function App() {
   const [leftOpen, setLeftOpen] = useState(true);
   const [centerOpen, setCenterOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  /** 右栏宽度（px）：由中栏分隔条拖拽调节；null = 用 CSS 默认 520px */
+  const [rightWidth, setRightWidth] = useState<number | null>(null);
   /** 批注列表点击 → 滚动到对应记录 */
   const [recordJump, setRecordJump] = useState<{ index: number; token: number } | null>(null);
   /** 原文定位中枢（中间面板） */
   const viewerRef = useRef<PaperViewerHandle>(null);
+  /** 三栏容器（拖拽时量取可用宽度） */
+  const mainRef = useRef<HTMLElement>(null);
+  /** 中栏分隔条拖拽状态 */
+  const dragRef = useRef<{ startX: number; startW: number; min: number; max: number } | null>(null);
 
   const pipeline = usePipeline({
     paperId: selected?.id ?? null,
@@ -156,6 +178,64 @@ export default function App() {
     void viewerRef.current?.locate(citations, field);
   }, []);
 
+  /* ---- 中栏分隔条拖拽：改变右栏宽度，中栏（flex:1）自动吃掉剩余空间 ---- */
+
+  const beginDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const main = mainRef.current;
+    const right = main?.querySelector<HTMLElement>(".sidebar-right");
+    if (!main || !right) return;
+    const max = Math.max(RIGHT_MIN, maxRightWidth(main));
+    dragRef.current = {
+      startX: e.clientX,
+      startW: right.getBoundingClientRect().width,
+      min: Math.min(RIGHT_MIN, max),
+      max,
+    };
+    // 指针捕获：拖出元素外仍持续收到事件
+    e.currentTarget.setPointerCapture(e.pointerId);
+    document.body.classList.add("col-resizing");
+    e.preventDefault();
+  }, []);
+
+  const moveDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const d = dragRef.current;
+    if (!d) return;
+    // 向右拖动 → 右栏变窄 → 中栏变宽 → PDF 适应宽度后放大
+    const next = d.startW - (e.clientX - d.startX);
+    setRightWidth(Math.min(Math.max(next, d.min), d.max));
+  }, []);
+
+  const endDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    document.body.classList.remove("col-resizing");
+  }, []);
+
+  /** 窗口缩小时把右栏宽度收回可用范围，避免三栏溢出 */
+  useEffect(() => {
+    const onResize = () => {
+      setRightWidth((w) => {
+        if (w == null) return w;
+        const main = mainRef.current;
+        if (!main) return w;
+        const max = Math.max(RIGHT_MIN, maxRightWidth(main));
+        return Math.min(Math.max(w, Math.min(RIGHT_MIN, max)), max);
+      });
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  /** 拖拽过则用显式宽度；中栏折叠时不施加（交给 .center-collapsed 铺满） */
+  const rightPaneStyle = useMemo(
+    () =>
+      centerOpen && rightWidth != null
+        ? { flex: `0 0 ${rightWidth}px`, width: `${rightWidth}px` }
+        : undefined,
+    [centerOpen, rightWidth],
+  );
+
   /** 提取过程动画：步骤 running→done 时，驱动中间面板对原文依据做标注框选 */
   const prevStepsRef = useRef<Record<string, string>>({});
   useEffect(() => {
@@ -221,7 +301,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className={`app-main${centerOpen ? "" : " center-collapsed"}`}>
+      <main ref={mainRef} className={`app-main${centerOpen ? "" : " center-collapsed"}`}>
         {leftOpen ? (
           <>
             <div
@@ -259,18 +339,34 @@ export default function App() {
             {papersLoading && <div className="viewer-loading">正在加载论文库…</div>}
           </section>
         )}
-        <div
-          className={centerOpen ? "edge-strip edge-strip-center" : "sidebar-rail rail-center"}
-          onClick={() => setCenterOpen((v) => !v)}
-          title={centerOpen ? "折叠论文预览" : "展开论文预览"}
-          role="button"
-        >
-          {centerOpen ? <span className="edge-strip-grip" /> : "‹"}
-        </div>
+        {centerOpen ? (
+          <div
+            className="edge-strip edge-strip-center edge-strip-drag"
+            onPointerDown={beginDrag}
+            onPointerMove={moveDrag}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            onDoubleClick={() => setCenterOpen(false)}
+            title="左右拖动可缩放文献预览（双击折叠）"
+            role="separator"
+            aria-orientation="vertical"
+          >
+            <span className="edge-strip-grip" />
+          </div>
+        ) : (
+          <div
+            className="sidebar-rail rail-center"
+            onClick={() => setCenterOpen(true)}
+            title="展开论文预览"
+            role="button"
+          >
+            ‹
+          </div>
+        )}
 
         {rightOpen ? (
           <>
-            <aside className="sidebar-right">
+            <aside className="sidebar-right" style={rightPaneStyle}>
               <PipelineKanban
                 steps={pipeline.steps}
                 records={pipeline.records}
