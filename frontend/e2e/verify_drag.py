@@ -143,6 +143,30 @@ with sync_playwright() as p:
     check("历史解析结果可收起", n0 > 0 and n1 == 0, f"{n0} → {n1}")
     check("历史解析结果可展开恢复", n2 == n0, f"{n1} → {n2}")
 
+    # ---------- 10. 定位/滚动不得把整页（body）滚下去 ----------
+    # 回归：el.scrollIntoView 会连同 body 一起滚动，而 body 是 overflow:hidden，
+    # 顶栏被顶出视口后用户无法滚回（实测 body.scrollTop=22、顶栏 top=-22）
+    layout = page.evaluate(
+        """() => {
+            const h = document.querySelector('.app-header');
+            return {
+                bodyTop: Math.round(document.body.scrollTop),
+                htmlTop: Math.round(document.documentElement.scrollTop),
+                headerTop: h ? Math.round(h.getBoundingClientRect().top) : null,
+            };
+        }"""
+    )
+    check(
+        "body/html 未被滚动",
+        layout["bodyTop"] == 0 and layout["htmlTop"] == 0,
+        f"body={layout['bodyTop']} html={layout['htmlTop']}",
+    )
+    check(
+        "顶栏未被顶出视口",
+        (layout["headerTop"] or 0) >= 0,
+        f"headerTop={layout['headerTop']}",
+    )
+
     check("无 JS 运行时错误", len(errors) == 0, "; ".join(errors[:2]))
 
     browser.close()

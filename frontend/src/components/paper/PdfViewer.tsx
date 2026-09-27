@@ -472,30 +472,59 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
   );
 
   /**
+   * 只滚动 pdf 容器自身，把元素带到指定位置。
+   *
+   * 【不要用 el.scrollIntoView()】：它会连同所有可滚动祖先一起滚，包括 body。
+   * 而 body 是 overflow:hidden —— 被程序化滚下去之后用户再也滚不回来，
+   * 顶栏就被永久顶出视口（实测 body.scrollTop=22、顶栏 top=-22）。
+   */
+  const scrollElementIntoContainer = useCallback(
+    (el: HTMLElement | null | undefined, align: "center" | "start" = "center") => {
+      const container = scrollRef.current;
+      if (!container || !el || !el.isConnected) return;
+      const c = container.getBoundingClientRect();
+      const b = el.getBoundingClientRect();
+      const offset =
+        align === "center" ? b.top - c.top - (c.height - b.height) / 2 : b.top - c.top;
+      container.scrollTo({
+        top: Math.max(0, container.scrollTop + offset),
+        behavior: "smooth",
+      });
+    },
+    [],
+  );
+
+  /**
    * 把高亮框滚到视口内（单次滚动）。
    * 框已经在视口内时【完全不动】——动画逐字段播放时，若每个字段都先滚到页顶
    * 再回到框居中，画面就会在两个位置之间反复摇摆。
    */
-  const scrollBoxIntoView = useCallback((box: HTMLElement | null | undefined) => {
-    const container = scrollRef.current;
-    if (!container || !box || !box.isConnected) return;
-    const c = container.getBoundingClientRect();
-    const b = box.getBoundingClientRect();
-    const margin = 60;
-    if (b.top >= c.top + margin && b.bottom <= c.bottom - margin) return; // 已可见，不动
-    box.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, []);
+  const scrollBoxIntoView = useCallback(
+    (box: HTMLElement | null | undefined) => {
+      const container = scrollRef.current;
+      if (!container || !box || !box.isConnected) return;
+      const c = container.getBoundingClientRect();
+      const b = box.getBoundingClientRect();
+      const margin = 60;
+      if (b.top >= c.top + margin && b.bottom <= c.bottom - margin) return; // 已可见，不动
+      scrollElementIntoContainer(box, "center");
+    },
+    [scrollElementIntoContainer],
+  );
 
   /** 定位后：滚动到高亮框（单次滚动）并闪烁 */
-  const scrollToHighlight = useCallback((box: HTMLElement) => {
-    if (!box.isConnected) return;
-    box.scrollIntoView({ behavior: "smooth", block: "center" });
-    box.classList.add("active");
-    window.setTimeout(() => {
-      box.classList.remove("active");
-      box.classList.add("done");
-    }, 5000);
-  }, []);
+  const scrollToHighlight = useCallback(
+    (box: HTMLElement) => {
+      if (!box.isConnected) return;
+      scrollElementIntoContainer(box, "center");
+      box.classList.add("active");
+      window.setTimeout(() => {
+        box.classList.remove("active");
+        box.classList.add("done");
+      }, 5000);
+    },
+    [scrollElementIntoContainer],
+  );
 
   /** 关键词兜底：字段无引用句时，用默认关键词 + 值内英文关键词跨页定位 */
   const searchKeywords = useCallback(
@@ -598,13 +627,13 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
         const shell = scrollRef.current?.querySelector<HTMLElement>(
           `[data-page-number="${page}"]`,
         );
-        shell?.scrollIntoView({ block: "start" });
+        scrollElementIntoContainer(shell, "start");
       },
       locateSentences,
       animateFields,
       refit: () => void fitWidth(),
     }),
-    [locateSentences, animateFields, fitWidth],
+    [locateSentences, animateFields, fitWidth, scrollElementIntoContainer],
   );
 
   const zoomIn = () => {

@@ -87,6 +87,26 @@ export default function App() {
       .finally(() => setPapersLoading(false));
   }, []);
 
+  /**
+   * 兜底守卫：任何 el.scrollIntoView() 都会连同 body 一起滚动，
+   * 而 body 是 overflow:hidden —— 一旦被程序化滚动，用户无法滚回，
+   * 顶栏就会被永久顶出视口。这里把 body/html 的滚动位置强制归零。
+   * （PdfViewer 已改为只滚容器自身，此处是防止其它调用的最后一道防线。）
+   */
+  useEffect(() => {
+    const reset = () => {
+      if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
+      if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
+    };
+    document.body.addEventListener("scroll", reset);
+    document.documentElement.addEventListener("scroll", reset);
+    reset();
+    return () => {
+      document.body.removeEventListener("scroll", reset);
+      document.documentElement.removeEventListener("scroll", reset);
+    };
+  }, []);
+
   const selectPaper = useCallback(
     async (paper: Paper) => {
       setSelected(paper);
