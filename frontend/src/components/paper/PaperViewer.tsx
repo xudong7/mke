@@ -12,6 +12,8 @@ export interface PaperViewerHandle {
   locate: (citations: string[], label: string) => Promise<boolean> | boolean;
   /** 提取过程动画：逐字段在原文上标注框选（PDF 为异步） */
   animateFields: (fields: FieldHighlight[]) => Promise<void>;
+  /** 重新进入「适应宽度」模式（PDF 有效；纯文本无缩放概念） */
+  refit: () => void;
 }
 
 interface Props {
@@ -51,6 +53,9 @@ export const PaperViewer = forwardRef<PaperViewerHandle, Props>(function PaperVi
           return pdfRef.current?.animateFields(fields) ?? Promise.resolve();
         }
         return textRef.current?.animateFields(fields) ?? Promise.resolve();
+      },
+      refit() {
+        pdfRef.current?.refit();
       },
     }),
     [paper?.has_pdf],

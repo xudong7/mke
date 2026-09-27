@@ -503,6 +503,34 @@ body.col-resizing canvas {
   align-items: center;
   font-weight: 600;
   margin-bottom: 8px;
+  /* 标题栏本身是收起/展开按钮：重置按钮默认样式，保持原有观感 */
+  width: 100%;
+  padding: 2px 0;
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.run-history-header:hover {
+  color: var(--text);
+}
+.run-history-header-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.run-history-caret {
+  display: inline-block;
+  width: 10px;
+  font-size: 10px;
+  color: var(--text-3);
+}
+/* 收起时不留多余间距 */
+.run-history.collapsed .run-history-header {
+  margin-bottom: 0;
 }
 .run-history-empty {
   color: var(--text-3);

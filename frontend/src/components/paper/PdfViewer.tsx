@@ -28,6 +28,8 @@ export interface PdfViewerHandle {
   locateSentences: (sentences: string[], label: string) => Promise<boolean>;
   /** 提取过程动画：按字段顺序在原文上逐段标注框选（先脉冲后转绿）；新调用会取消旧动画 */
   animateFields: (fields: FieldHighlight[]) => Promise<void>;
+  /** 重新进入「适应宽度」模式并按当前容器宽度重排（拖动分隔条后调用） */
+  refit: () => void;
 }
 
 interface Props {
@@ -600,8 +602,9 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
       },
       locateSentences,
       animateFields,
+      refit: () => void fitWidth(),
     }),
-    [locateSentences, animateFields],
+    [locateSentences, animateFields, fitWidth],
   );
 
   const zoomIn = () => {

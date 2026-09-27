@@ -194,6 +194,10 @@ export default function App() {
     // 指针捕获：拖出元素外仍持续收到事件
     e.currentTarget.setPointerCapture(e.pointerId);
     document.body.classList.add("col-resizing");
+    // 拖动分隔条 = 要求 PDF 重新适配新宽度。
+    // 点过 +/− 手动缩放会退出「适应宽度」模式，若不在此重置，
+    // 拖动后 PDF 会保持旧缩放，中栏变窄时画面被截断。
+    viewerRef.current?.refit();
     e.preventDefault();
   }, []);
 
@@ -210,6 +214,8 @@ export default function App() {
     dragRef.current = null;
     e.currentTarget.releasePointerCapture?.(e.pointerId);
     document.body.classList.remove("col-resizing");
+    // 收尾再校正一次，确保最终宽度下精确适配（拖拽中的去抖重排可能被取消）
+    viewerRef.current?.refit();
   }, []);
 
   /** 窗口缩小时把右栏宽度收回可用范围，避免三栏溢出 */

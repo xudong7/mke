@@ -117,6 +117,32 @@ with sync_playwright() as p:
             f"highlight-box={page.locator('.highlight-box').count()}",
         )
 
+    # ---------- 8. 手动缩放后拖动仍能自适应宽度 ----------
+    # 回归：点 +/− 会退出「适应宽度」模式，拖动若不适配，页面会超出容器被截断
+    page.locator(".viewer-toolbar button", has_text="+").click()
+    page.wait_for_timeout(700)
+    drag(page, page.locator(".edge-strip-drag"), -150)
+    page.wait_for_timeout(1300)
+    fit = page.evaluate(
+        """() => {
+            const sc = document.querySelector('.pdf-scroll');
+            const pc = document.querySelector('.page-container');
+            return Math.round(pc.getBoundingClientRect().width) - (sc.clientWidth - 48);
+        }"""
+    )
+    check("手动缩放(+)后拖动仍自适应（画面不被截断）", fit <= 0, f"超出 {fit}px")
+
+    # ---------- 9. 左侧「历史解析结果」可收起 / 展开 ----------
+    n0 = page.locator(".run-history-item").count()
+    page.locator(".run-history-header").click()
+    page.wait_for_timeout(400)
+    n1 = page.locator(".run-history-item").count()
+    page.locator(".run-history-header").click()
+    page.wait_for_timeout(400)
+    n2 = page.locator(".run-history-item").count()
+    check("历史解析结果可收起", n0 > 0 and n1 == 0, f"{n0} → {n1}")
+    check("历史解析结果可展开恢复", n2 == n0, f"{n1} → {n2}")
+
     check("无 JS 运行时错误", len(errors) == 0, "; ".join(errors[:2]))
 
     browser.close()
