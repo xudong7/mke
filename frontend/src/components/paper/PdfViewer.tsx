@@ -93,6 +93,15 @@ interface Span {
   exact: boolean;
 }
 
+/** 已绘制的高亮：保留描述以便缩放/拖拽后按新 scale 重绘（box 会随重绘更新） */
+interface DrawnHighlight {
+  pageNo: number;
+  span: Span;
+  label: string;
+  cls?: string;
+  box?: HTMLElement | null;
+}
+
 /** 在单页中匹配引用句：先精确，再模糊（最长公共子串） */
 function matchSpan(idx: PageIndex, cite: string): Span | null {
   if (!cite) return null;
@@ -237,7 +246,7 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
   /** 动画取消令牌：新动画开始时自增，旧动画在下一次 await 后据此退出 */
   const animateTokenRef = useRef(0);
   /** 已绘制的高亮描述：缩放/拖拽使页面重挂载后按新 scale 重绘，保证定位结果不消失 */
-  const drawnRef = useRef<Array<{ pageNo: number; span: Span; label: string; cls?: string }>>([]);
+  const drawnRef = useRef<DrawnHighlight[]>([]);
   useEffect(() => {
     scaleRef.current = scale;
   }, [scale]);
@@ -451,27 +460,39 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
 
   /** 绘制高亮并记录描述（缩放/拖拽后据此重绘） */
   const drawRemembered = useCallback(
-    (pageNo: number, span: Span, label: string): HTMLElement | null => {
-      drawnRef.current.push({ pageNo, span, label });
-      return drawHighlight(pageNo, span, label);
+    (pageNo: number, span: Span, label: string): DrawnHighlight => {
+      const rec: DrawnHighlight = { pageNo, span, label, box: null };
+      rec.box = drawHighlight(pageNo, span, label);
+      drawnRef.current.push(rec);
+      return rec;
     },
     [drawHighlight],
   );
 
-  /** 滚动到命中页 + 高亮框居中闪烁 */
-  const scrollToHighlight = useCallback((box: HTMLElement, pageNo: number) => {
-    const shell = scrollRef.current?.querySelector<HTMLElement>(
-      `[data-page-number="${pageNo}"]`,
-    );
-    shell?.scrollIntoView({ behavior: "smooth", block: "start" });
-    setTimeout(() => {
-      box.scrollIntoView({ behavior: "smooth", block: "center" });
-      box.classList.add("active");
-      setTimeout(() => {
-        box.classList.remove("active");
-        box.classList.add("done");
-      }, 5000);
-    }, 300);
+  /**
+   * 把高亮框滚到视口内（单次滚动）。
+   * 框已经在视口内时【完全不动】——动画逐字段播放时，若每个字段都先滚到页顶
+   * 再回到框居中，画面就会在两个位置之间反复摇摆。
+   */
+  const scrollBoxIntoView = useCallback((box: HTMLElement | null | undefined) => {
+    const container = scrollRef.current;
+    if (!container || !box || !box.isConnected) return;
+    const c = container.getBoundingClientRect();
+    const b = box.getBoundingClientRect();
+    const margin = 60;
+    if (b.top >= c.top + margin && b.bottom <= c.bottom - margin) return; // 已可见，不动
+    box.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
+
+  /** 定位后：滚动到高亮框（单次滚动）并闪烁 */
+  const scrollToHighlight = useCallback((box: HTMLElement) => {
+    if (!box.isConnected) return;
+    box.scrollIntoView({ behavior: "smooth", block: "center" });
+    box.classList.add("active");
+    window.setTimeout(() => {
+      box.classList.remove("active");
+      box.classList.add("done");
+    }, 5000);
   }, []);
 
   /** 关键词兜底：字段无引用句时，用默认关键词 + 值内英文关键词跨页定位 */
@@ -498,18 +519,18 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
         if (!sentence) continue;
         const hit = await locateCitationText(sentence);
         if (!hit) continue;
-        const box = drawRemembered(hit.pageNo, hit.span, label);
-        if (box) {
-          scrollToHighlight(box, hit.pageNo);
+        const rec = drawRemembered(hit.pageNo, hit.span, label);
+        if (rec.box) {
+          scrollToHighlight(rec.box);
           return true;
         }
       }
       // 引用句未命中 → 字段关键词兜底（对齐 mke-main index_v2 的 locateField）
       const kwHit = await searchKeywords(label);
       if (kwHit) {
-        const box = drawRemembered(kwHit.pageNo, kwHit.span, label);
-        if (box) {
-          scrollToHighlight(box, kwHit.pageNo);
+        const rec = drawRemembered(kwHit.pageNo, kwHit.span, label);
+        if (rec.box) {
+          scrollToHighlight(rec.box);
           return true;
         }
       }
@@ -536,27 +557,25 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
         if (token !== animateTokenRef.current) return;
         if (!hit) hit = await searchKeywords(label, f.value);
         if (!hit) continue;
-        const box = drawRemembered(hit.pageNo, hit.span, label);
-        if (!box) continue;
+        const rec = drawRemembered(hit.pageNo, hit.span, label);
+        if (!rec.box) continue;
 
-        const shell = scrollRef.current?.querySelector<HTMLElement>(
-          `[data-page-number="${hit.pageNo}"]`,
-        );
-        shell?.scrollIntoView({ behavior: "smooth", block: "start" });
-        box.classList.add("active");
-        drawnRef.current[drawnRef.current.length - 1].cls = "active";
-        await delay(600);
+        // 单次滚动：框已在视口内就不动，避免整段动画反复上下摇摆
+        scrollBoxIntoView(rec.box);
+        rec.cls = "active";
+        rec.box.classList.add("active");
+        await delay(700);
         if (token !== animateTokenRef.current) return;
-        box.scrollIntoView({ behavior: "smooth", block: "center" });
-        await delay(900);
-        if (token !== animateTokenRef.current) return;
-        box.classList.remove("active");
-        box.classList.add("done");
-        drawnRef.current[drawnRef.current.length - 1].cls = "done";
-        await delay(140);
+        // 期间若发生缩放重绘，rec.box 已被替换 → 这里读最新节点，避免对已卸载的旧节点改类名
+        if (rec.box?.isConnected) {
+          rec.cls = "done";
+          rec.box.classList.remove("active");
+          rec.box.classList.add("done");
+        }
+        await delay(180);
       }
     },
-    [resetHighlights, locateCitationText, searchKeywords, drawRemembered],
+    [resetHighlights, locateCitationText, searchKeywords, drawRemembered, scrollBoxIntoView],
   );
 
   /* 缩放/拖拽改变 scale 时 PageView 会按新 key 重建（旧的高亮框随之销毁），
@@ -565,8 +584,8 @@ export const PdfViewer = forwardRef<PdfViewerHandle, Props>(function PdfViewer({
     if (!pdf) return;
     clearHighlightDom();
     for (const h of drawnRef.current) {
-      const box = drawHighlight(h.pageNo, h.span, h.label);
-      if (box && h.cls) box.classList.add(h.cls);
+      h.box = drawHighlight(h.pageNo, h.span, h.label);
+      if (h.box && h.cls) h.box.classList.add(h.cls);
     }
   }, [scale, pdf, clearHighlightDom, drawHighlight]);
 
