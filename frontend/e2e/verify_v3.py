@@ -31,37 +31,53 @@ with sync_playwright() as p:
     page.wait_for_load_state("networkidle")
     page.wait_for_selector(".paper-item", timeout=15000)
 
-    # ============ 1. 手柄位置（右侧唯一胶囊钮，悬浮于看板左缘） ============
-    handles = page.locator(".panel-handle")
-    check("右侧唯一悬浮手柄存在", handles.count() == 1, f"count={handles.count()}")
+    # ============ 1. 手柄位置（三区竖直居中，无重叠） ============
+    strips = page.locator(".edge-strip")
+    check("三区手柄存在", strips.count() == 3, f"count={strips.count()}")
+    left_strip = page.locator(".edge-strip-left").bounding_box()
     center_bb = page.locator(".pane-center").bounding_box()
-    right_handle = page.locator(".panel-handle-right").bounding_box()
-    right_cx = right_handle["x"] + right_handle["width"] / 2
+    check("左侧手柄位于屏幕左缘", left_strip["x"] < 2, f"x={left_strip['x']}")
     check(
-        "右侧手柄水平居中对齐中栏右缘/看板左缘",
-        abs(right_cx - (center_bb["x"] + center_bb["width"])) < 3,
-        f"handle cx={right_cx:.0f}, center right={center_bb['x'] + center_bb['width']:.0f}",
+        "左侧手柄竖直居中于面板",
+        abs((left_strip["y"] + left_strip["height"] / 2) - (center_bb["y"] + center_bb["height"] / 2)) < 12,
     )
+    center_strip = page.locator(".edge-strip-center").bounding_box()
     check(
-        "右侧手柄竖直居中于面板",
-        abs((right_handle["y"] + right_handle["height"] / 2) - (center_bb["y"] + center_bb["height"] / 2)) < 12,
+        "中部手柄贴邻中栏右缘",
+        abs(center_strip["x"] - (center_bb["x"] + center_bb["width"])) < 3,
+        f"strip x={center_strip['x']:.0f}, center right={center_bb['x'] + center_bb['width']:.0f}",
     )
     page.screenshot(path=str(SHOT_DIR / "01_handles.png"))
 
-    # ============ 2. 聚焦模式（唯一按钮 = 折叠左栏 + 右栏加宽至 75%） ============
-    vp_w = page.viewport_size["width"]
+    # ============ 2. 折叠/恢复（含中栏） ============
+    # 左栏折叠
+    page.locator(".edge-strip-left").click()
+    page.wait_for_timeout(500)
+    check("左栏折叠", page.locator(".sidebar-left").count() == 0 and page.locator(".sidebar-rail").count() >= 1)
+    page.locator(".sidebar-rail").first.click()
+    page.wait_for_timeout(500)
+    check("左栏恢复", page.locator(".sidebar-left").count() == 1)
+
+    # 中栏折叠 → 看板占据中栏释放的空间
     kanban_before = page.locator(".sidebar-right").bounding_box()["width"]
-    page.locator(".panel-handle-right").click()
+    page.locator(".edge-strip-center").click()
     page.wait_for_timeout(500)
-    check("聚焦：右栏常驻", page.locator(".kanban").count() > 0)
-    check("聚焦：左栏折叠", page.locator(".sidebar-left").count() == 0)
     kanban_w = page.locator(".sidebar-right").bounding_box()["width"]
-    check("聚焦：右栏加宽 ≥60% 视口", kanban_w >= vp_w * 0.55,
-          f"{kanban_w:.0f} vs 60%={vp_w * 0.6:.0f}")
-    page.screenshot(path=str(SHOT_DIR / "02_wide_mode.png"))
-    page.locator(".panel-handle-right").click()
+    check("中栏折叠后看板显著变宽", kanban_w > kanban_before + 500,
+          f"{kanban_before:.0f} → {kanban_w:.0f}")
+    check("中栏折叠出现 rail-center", page.locator(".rail-center").count() == 1)
+    page.screenshot(path=str(SHOT_DIR / "02_center_collapsed.png"))
+    page.locator(".rail-center").click()
     page.wait_for_timeout(500)
-    check("还原：左栏恢复", page.locator(".sidebar-left").count() == 1)
+    check("中栏恢复", page.locator(".pane-center").count() == 1)
+
+    # 右栏折叠
+    page.locator(".edge-strip-right").click()
+    page.wait_for_timeout(500)
+    check("右栏折叠", page.locator(".kanban").count() == 0)
+    page.locator(".sidebar-rail").last.click()
+    page.wait_for_timeout(500)
+    check("右栏恢复", page.locator(".kanban").count() > 0)
 
     # ============ 3. 页面滚动修复 ============
     page.locator(".paper-item").first.click()
@@ -71,7 +87,7 @@ with sync_playwright() as p:
     inner_h = page.evaluate("window.innerHeight")
     check("页面不整体滚动", scroll_h <= inner_h + 1, f"scrollH={scroll_h} innerH={inner_h}")
     pane_h = page.locator(".pane-center").bounding_box()["height"]
-    check("中栏高度 == 视口", abs(pane_h - inner_h) < 3, f"{pane_h:.0f} vs {inner_h}")
+    check("中栏高度 == 视口-48", abs(pane_h - (inner_h - 48)) < 3, f"{pane_h:.0f} vs {inner_h - 48}")
     pdf_scroll = page.locator(".pdf-scroll")
     pdf_scroll.evaluate("el => { el.scrollTop = 400; }")
     page.wait_for_timeout(300)
@@ -145,7 +161,7 @@ with sync_playwright() as p:
     page.locator(".kanban-tab", has_text="批注").click()
     page.wait_for_timeout(300)
     n_before = page.locator(".annotation-item").count()
-    page.locator('.annotation-item-actions button[aria-label="删除"]').first.click()
+    page.locator(".annotation-item-actions button", has_text="删除").first.click()
     page.wait_for_timeout(800)
     check("批注删除", page.locator(".annotation-item").count() == n_before - 1)
     # backdrop 关闭测试
@@ -195,11 +211,8 @@ with sync_playwright() as p:
     page.wait_for_selector(".paper-item", timeout=15000)
     page.locator(".paper-item").first.click()
     page.wait_for_timeout(3000)
-    # 切到「历史」tab（左栏 tabs 导航）
-    page.locator(".kanban-tab", has_text="历史").click()
-    page.wait_for_timeout(300)
     check("历史 run 出现", page.locator(".run-history-item").count() >= 1)
-    page.locator(".run-history-item").first.click()
+    page.locator(".run-history-item button", has_text="查看").first.click()
     page.wait_for_timeout(2500)
     check("历史恢复 5/5", page.locator(".timeline-node.status-done").count() == 5)
     check("历史恢复结果表", page.locator(".results-row").count() >= 1)

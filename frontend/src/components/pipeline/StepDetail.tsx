@@ -1,5 +1,4 @@
 /* StepDetail.tsx — 按步骤类型定制的中间结果渲染（可切换查看原始 JSON） */
-import { ArrowDown, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import type {
   ExtractRecord,
@@ -41,7 +40,6 @@ export function StepDetail({ step }: { step: PipelineStep }) {
         className="step-raw-toggle mono"
         onClick={() => setRawOpen((v) => !v)}
       >
-        {rawOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
         {rawOpen ? "收起" : "查看"}原始 JSON
       </button>
       {rawOpen && (
@@ -174,8 +172,7 @@ function ExtractDetail({ payload }: { payload: unknown }) {
             })
           }
         >
-          <ArrowDown size={14} />
-          查看结果表
+          查看结果表 ↓
         </button>
       </div>
     </>

@@ -1,5 +1,4 @@
 /* AnnotationPopover.tsx — 批注输入浮层（点击结果行/字段后弹出，不占布局） */
-import { Check, X } from "lucide-react";
 import type { AnnotationTarget } from "../pipeline/ResultsTable";
 
 interface Props {
@@ -55,15 +54,14 @@ export function AnnotationPopover({
             }}
           />
           <div className="editor-actions">
-            <button className="btn btn-icon" onClick={onCancel} aria-label="取消" title="关闭批注编辑">
-              <X size={14} />
+            <button className="btn btn-sm" onClick={onCancel}>
+              取消
             </button>
             <button
               className="btn btn-sm btn-primary"
               onClick={onSave}
               disabled={!note.trim()}
             >
-              <Check size={14} />
               保存批注
             </button>
           </div>

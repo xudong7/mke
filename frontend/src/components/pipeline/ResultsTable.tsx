@@ -1,5 +1,4 @@
 /* ResultsTable.tsx — 抽取结果表：关键列 + 行/字段级批注（hover 触发 + 浮层，不改原结果） */
-import { Flag, MessageSquarePlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Annotation, ExtractRecord } from "../../types";
 import { AnnotationPopover } from "../annotation/AnnotationPopover";
@@ -28,6 +27,7 @@ interface Props {
   annotations: Annotation[];
   onSaveAnnotation: (target: AnnotationTarget, note: string) => Promise<void>;
   recordJump: { index: number; token: number } | null;
+  onLocate: (field: string, citations: string[]) => void;
 }
 
 function cellText(v: unknown): string {
@@ -35,7 +35,7 @@ function cellText(v: unknown): string {
   return String(v).slice(0, 120);
 }
 
-export function ResultsTable({ records, annotations, onSaveAnnotation, recordJump }: Props) {
+export function ResultsTable({ records, annotations, onSaveAnnotation, recordJump, onLocate }: Props) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [note, setNote] = useState("");
   const [flashIdx, setFlashIdx] = useState<number | null>(null);
@@ -105,6 +105,7 @@ export function ResultsTable({ records, annotations, onSaveAnnotation, recordJum
                     open={openIdx === i}
                     onToggle={() => setOpenIdx(openIdx === i ? null : i)}
                     onAnnotate={openPopover}
+                    onLocate={onLocate}
                     flash={flashIdx === i}
                   />
                 );
@@ -135,6 +136,7 @@ function RowBlock({
   open,
   onToggle,
   onAnnotate,
+  onLocate,
   flash,
 }: {
   index: number;
@@ -143,6 +145,7 @@ function RowBlock({
   open: boolean;
   onToggle: () => void;
   onAnnotate: (t: AnnotationTarget, e: React.MouseEvent<HTMLElement>) => void;
+  onLocate: (field: string, citations: string[]) => void;
   flash: boolean;
 }) {
   const hasAnno = rowAnnos.length > 0;
@@ -157,15 +160,14 @@ function RowBlock({
           <span className="row-index">{index + 1}</span>
           {hasAnno && <span className="anno-dot" title={`${rowAnnos.length} 条批注`} />}
           <button
-            className="btn btn-icon anno-add"
+            className="btn btn-sm anno-add"
             onClick={(e) => {
               e.stopPropagation();
               onAnnotate({ record_index: index }, e);
             }}
-            aria-label="为这条记录添加批注"
             title="为这条记录添加批注"
           >
-            <MessageSquarePlus size={13} />
+            ＋批注
           </button>
         </td>
         {COLUMNS.map((c) => (
@@ -175,7 +177,7 @@ function RowBlock({
       {open && (
         <tr className="results-detail-row">
           <td colSpan={COLUMNS.length + 1}>
-            <RecordDetail record={record} index={index} onAnnotate={onAnnotate} />
+            <RecordDetail record={record} index={index} onAnnotate={onAnnotate} onLocate={onLocate} />
           </td>
         </tr>
       )}
@@ -198,15 +200,14 @@ function AnnotatableValue({
     <span className="annotatable-value">
       <span className="mini-k mono">{label}:</span> {text}
       <button
-        className="btn btn-icon flag-btn"
+        className="btn btn-sm flag-btn"
         onClick={(e) => {
           e.stopPropagation();
           onAnnotate(e);
         }}
-        aria-label={`为字段「${label}」添加批注`}
         title={`为字段「${label}」添加批注`}
       >
-        <Flag size={12} />
+        ⚑
       </button>
     </span>
   );
@@ -216,10 +217,12 @@ function RecordDetail({
   record,
   index,
   onAnnotate,
+  onLocate,
 }: {
   record: ExtractRecord;
   index: number;
   onAnnotate: (t: AnnotationTarget, e: React.MouseEvent<HTMLElement>) => void;
+  onLocate: (field: string, citations: string[]) => void;
 }) {
   const structuredTables: Array<[string, Array<Record<string, unknown>>]> = [
     ["合成温度_结构化", record["合成温度_结构化"] as Array<Record<string, unknown>>],
@@ -249,6 +252,16 @@ function RecordDetail({
                 )
               }
             />
+            <button
+              className="btn btn-sm citation-locate"
+              onClick={(e) => {
+                e.stopPropagation();
+                onLocate(c, (record["字段引用"]?.[c] as string[] | undefined) ?? []);
+              }}
+              title={`定位「${c}」引用句到原文`}
+            >
+              📍
+            </button>
           </div>
         ))}
       </div>
@@ -291,13 +304,50 @@ function RecordDetail({
 
       {record["字段引用"] && (
         <div className="detail-citations">
-          <div className="detail-subtitle">字段引用</div>
+          <div className="detail-subtitle">
+            字段引用
+            <button
+              className="btn btn-sm citation-locate"
+              onClick={(e) => {
+                e.stopPropagation();
+                onLocate(
+                  "字段引用",
+                  Object.values(record["字段引用"] as Record<string, string[]>).flat(),
+                );
+              }}
+              title="定位全部引用句到原文"
+            >
+              📍 定位全部
+            </button>
+          </div>
           {Object.entries(record["字段引用"]).map(([field, sentences]) => (
             <div key={field} className="citation-item">
-              <span className="citation-field">{field}</span>
+              <span className="citation-field">
+                {field}
+                <button
+                  className="btn btn-sm citation-locate"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onLocate(field, (sentences as string[]) ?? []);
+                  }}
+                  title={`定位「${field}」引用句到原文`}
+                >
+                  📍
+                </button>
+              </span>
               <ul>
                 {(sentences as string[]).map((s, i) => (
                   <li key={i} className="mono">
+                    <button
+                      className="btn btn-sm citation-locate mono"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onLocate(field, [s]);
+                      }}
+                      title="定位该引用句到原文"
+                    >
+                      📍
+                    </button>
                     {s}
                   </li>
                 ))}

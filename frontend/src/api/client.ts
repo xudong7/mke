@@ -143,6 +143,63 @@ export async function updateRunStep(
   return data;
 }
 
+/* ---- 导出 ---- */
+/** 从 Content-Disposition 解析下载文件名（优先 RFC 5987 filename*，浏览器下载用） */
+function fileNameFromDisposition(disposition: string | undefined, fallback: string): string {
+  if (!disposition) return fallback;
+  const star = /filename\*=(?:UTF-8'')?([^;]+)/i.exec(disposition);
+  if (star) {
+    try {
+      return decodeURIComponent(star[1]);
+    } catch {
+      /* 忽略解码失败，走普通 filename */
+    }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(disposition);
+  return plain ? plain[1] : fallback;
+}
+
+/** 触发浏览器下载 blob */
+export function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/** 导出当前运行的抽取结果到 Excel（POST 记录体） */
+export async function exportExcel(records: ExtractRecord[], paperId?: string): Promise<string> {
+  const { data, headers } = await api.post<Blob>(
+    "/export/excel",
+    { paper_id: paperId ?? null, records },
+    { responseType: "blob", timeout: 60_000 },
+  );
+  const filename = fileNameFromDisposition(
+    headers["content-disposition"],
+    `extraction_${Date.now()}.xlsx`,
+  );
+  downloadBlob(data, filename);
+  return filename;
+}
+
+/** 导出历史 run 的抽取结果到 Excel（GET 记录体） */
+export async function exportRunExcel(runId: string): Promise<string> {
+  const { data, headers } = await api.get<Blob>(`/export/runs/${encodeURIComponent(runId)}/export.xlsx`, {
+    responseType: "blob",
+    timeout: 60_000,
+  });
+  const filename = fileNameFromDisposition(
+    headers["content-disposition"],
+    `extraction_${Date.now()}.xlsx`,
+  );
+  downloadBlob(data, filename);
+  return filename;
+}
+
 /* ---- 结果批注（挂 run） ---- */
 export async function fetchRunAnnotations(runId: string): Promise<Annotation[]> {
   const { data } = await api.get<Annotation[]>(`/runs/${runId}/annotations`);

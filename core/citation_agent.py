@@ -1,6 +1,8 @@
 # core/citation_agent.py
 import json
 
+from .json_utils import loads_lenient
+
 def add_field_sentence_citations_for_paper(
     text: str,
     structured_results,
@@ -87,8 +89,8 @@ def add_field_sentence_citations_for_paper(
 
     raw = resp.choices[0].message.content
     try:
-        data = json.loads(raw)
-    except json.JSONDecodeError as e:
+        data = loads_lenient(raw)
+    except (json.JSONDecodeError, ValueError) as e:
         print(f"   ⚠️ 字段整句引用 agent JSON 解析失败：{e}")
         print("   返回内容前 200 字：", raw[:200])
         return structured_results

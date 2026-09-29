@@ -5,8 +5,9 @@ from pathlib import Path
 from openai import OpenAI
 
 from .citation_agent import add_field_sentence_citations_for_paper
+from .postprocess import cleanup_results
 from .prompt_builder import build_prompt_zh
-from .router import route_paper
+from .router import has_soft_template_evidence, route_paper
 
 
 def truncate_references(text: str) -> str:
@@ -42,6 +43,18 @@ class MesoporousExtractor:
         route_reason = routing.get("reason_zh", "")
         route_snippets = routing.get("source_snippets", [])
         route_snippets_str = " / ".join(route_snippets)
+
+        # 非破坏性兜底：路由若判为 simple，但原文确实存在「表面活性剂 + 硅源」的软模板证据，
+        # 则升级为完整抽取。否则一次误判会把除「组成/结构」外的字段全部填成 "00"
+        # （历史上同一篇论文在不同运行间被判成不同类型，就是这个原因）。
+        if analysis_type in ("core_shell_simple", "hard_template_simple") and has_soft_template_evidence(text):
+            print(f"   ⚠️ 路由判为 {analysis_type}，但原文检测到软模板证据（表面活性剂 + 硅源），已升级为 soft_template_full。")
+            route_reason = (
+                f"[路由已修正] 初判为 {analysis_type}，但原文存在「表面活性剂 + 硅源」软模板证据，"
+                f"已升级为完整抽取。原始判断：{route_reason}"
+            )
+            analysis_type = "soft_template_full"
+            routing = {**routing, "analysis_type": analysis_type}
 
         # 分支一：core_shell 或 hard_template，走简化抽取
         if analysis_type in ("core_shell_simple", "hard_template_simple"):
@@ -93,7 +106,9 @@ class MesoporousExtractor:
             if not r.get("来源文本片段") or r["来源文本片段"] == "00":
                 r["来源文本片段"] = route_snippets_str or "00"
 
-        return results
+        # 清理：剔除全空记录 + 合并同一配方的重复记录。
+        # 不按「是否有合成条件」过滤——「只有组成/结构」的记录对应论文真实样品（见 postprocess 注释）。
+        return cleanup_results(results)
 
     def _map_analysis_type_to_zh(self, analysis_type: str) -> str:
         if analysis_type == "soft_template_full":

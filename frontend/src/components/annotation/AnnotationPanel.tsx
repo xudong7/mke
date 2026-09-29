@@ -1,5 +1,4 @@
 /* AnnotationPanel.tsx v2 — 结果批注列表：显示 (记录 #n, 字段, value_snapshot, note)，点击定位到记录 */
-import { Trash2 } from "lucide-react";
 import type { Annotation } from "../../types";
 
 interface Props {
@@ -35,15 +34,13 @@ export function AnnotationPanel({ annotations, onDelete, onJumpToRecord }: Props
               </span>
               <div className="annotation-item-actions">
                 <button
-                  className="btn btn-icon btn-danger-ghost"
+                  className="btn btn-sm btn-danger-ghost"
                   onClick={(e) => {
                     e.stopPropagation();
                     void onDelete(a.id);
                   }}
-                  aria-label="删除"
-                  title="删除该批注"
                 >
-                  <Trash2 size={13} />
+                  删除
                 </button>
               </div>
             </div>

@@ -6,6 +6,7 @@
 """
 from __future__ import annotations
 
+import mimetypes
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -16,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import deps
 from .annotations import router as annotations_router
+from .export import router as export_router
 from .papers import router as papers_router
 from .pipeline import router as pipeline_router
 from .runs import papers_runs_router, router as runs_router
@@ -35,6 +37,7 @@ app.include_router(pipeline_router, prefix="/api")
 app.include_router(annotations_router, prefix="/api")
 app.include_router(runs_router, prefix="/api")
 app.include_router(papers_runs_router, prefix="/api")
+app.include_router(export_router, prefix="/api")
 
 
 @app.get("/api/health")
@@ -52,15 +55,31 @@ def health():
 
 
 # ---- 生产模式：托管前端构建产物（必须最后挂载，保证 /api 优先） ----
+# Python 默认不识别 .mjs（pdf.js worker），会以 text/plain 返回导致浏览器拒绝执行
+mimetypes.add_type("text/javascript", ".mjs")
+mimetypes.add_type("application/json", ".json")
 DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+
+
+class ImmutableAssets(StaticFiles):
+    """assets 文件名含内容哈希，内容变即换名 → 可安全长缓存。"""
+
+    def file_response(self, *args, **kwargs):
+        resp = super().file_response(*args, **kwargs)
+        resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return resp
+
+
 if DIST.is_dir() and (DIST / "index.html").exists():
-    app.mount("/assets", StaticFiles(directory=DIST / "assets"), name="assets")
+    app.mount("/assets", ImmutableAssets(directory=DIST / "assets"), name="assets")
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def spa_fallback(full_path: str):
         if full_path.startswith("api/"):
             raise HTTPException(status_code=404)
         target = DIST / full_path
+        # index.html 禁止缓存：否则前端重新构建后浏览器仍引用旧哈希的 assets 而白屏
+        no_cache = {"Cache-Control": "no-cache"}
         if full_path and target.is_file():
-            return FileResponse(target)
-        return FileResponse(DIST / "index.html")
+            return FileResponse(target, headers=no_cache)
+        return FileResponse(DIST / "index.html", headers=no_cache)

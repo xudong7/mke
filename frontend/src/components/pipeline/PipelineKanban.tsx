@@ -1,20 +1,24 @@
 /* PipelineKanban.tsx — 流程看板：时间轴/结果表 + 批注 tab（看板 | 批注(n)） */
-import { Cpu, LayoutDashboard, MessageSquare, Play } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Annotation, ExtractRecord, PipelineStep, RunStatus, StepId } from "../../types";
 import { PipelineTimeline } from "./PipelineTimeline";
 import { ResultsTable } from "./ResultsTable";
+import { LLMCostBanner } from "./LLMCostBanner";
 import { AnnotationPanel } from "../annotation/AnnotationPanel";
+import { ExtractOverlay } from "./ExtractOverlay";
 
 interface Props {
   steps: PipelineStep[];
   records: ExtractRecord[];
+  paperLabel: string;
+  runId: string | null;
   runStatus: RunStatus | null;
   llmConfigured: boolean;
-  llmModel: string | null;
   isStepReady: (id: StepId) => boolean;
   onRunStep: (id: StepId) => void;
   onRunAll: () => void;
+  onReset: () => void;
+  onExport: () => void;
   /* 结果批注（v2/v3） */
   annotations: Annotation[];
   onSaveAnnotation: (
@@ -24,72 +28,101 @@ interface Props {
   onDeleteAnnotation: (id: string) => Promise<void>;
   onJumpToRecord: (index: number) => void;
   recordJump: { index: number; token: number } | null;
+  onLocate: (field: string, citations: string[]) => void;
 }
 
 export function PipelineKanban({
   steps,
   records,
+  paperLabel,
+  runId,
   runStatus,
   llmConfigured,
-  llmModel,
   isStepReady,
   onRunStep,
   onRunAll,
+  onReset,
+  onExport,
   annotations,
   onSaveAnnotation,
   onDeleteAnnotation,
   onJumpToRecord,
   recordJump,
+  onLocate,
 }: Props) {
   const [tab, setTab] = useState<"board" | "annotations">("board");
   const anyRunning = runStatus === "running";
+  const anyDone = steps.some((s) => s.status === "done");
+
+  // 步骤⑤ 时长预估：按记录数提示（逐条 LLM 调用）
+  const structurizeEstimate = useMemo(() => {
+    const n = records.length;
+    if (n === 0) return null;
+    return `共 ${n} 条记录，逐条结构化预计 ${Math.round(n * 30)}–${Math.round(n * 60)} 秒`;
+  }, [records.length]);
 
   return (
     <div className="kanban">
       <div className="kanban-header">
-        <div className="kanban-tabs">
-          <button
-            className={`kanban-tab${tab === "board" ? " active" : ""}`}
-            onClick={() => setTab("board")}
-          >
-            <LayoutDashboard size={14} />
-            看板
-          </button>
-          <button
-            className={`kanban-tab${tab === "annotations" ? " active" : ""}`}
-            onClick={() => setTab("annotations")}
-          >
-            <MessageSquare size={14} />
-            批注
-            <span className={`count${annotations.length > 0 ? " has" : ""}`}>
-              ({annotations.length})
-            </span>
-          </button>
+        <div className="kanban-title" title={paperLabel}>
+          {paperLabel || "未选择论文"}
         </div>
         <div className="kanban-actions">
-          <span
-            className={`kanban-llm ${llmConfigured ? "ok" : "missing"}`}
-            title={llmConfigured ? `LLM 已配置 · 模型 ${llmModel ?? "未知"}` : "未配置 OPENAI_API_KEY，LLM 步骤不可用"}
+          {runId && (
+            <span className={`run-badge mono status-${runStatus ?? "pending"}`}>
+              run {runId.slice(0, 8)} · {runStatus}
+            </span>
+          )}
+          <button className="btn" onClick={onReset} disabled={!anyDone}>
+            重置
+          </button>
+          <button
+            className="btn"
+            onClick={onExport}
+            disabled={records.length === 0}
+            title="导出当前抽取结果为 Excel（3 表格式）"
           >
-            <Cpu size={14} />
-          </span>
+            导出 Excel
+          </button>
           <button className="btn btn-primary" onClick={onRunAll} disabled={anyRunning}>
-            <Play size={14} />
             全部运行
           </button>
         </div>
       </div>
 
+      <div className="kanban-tabs">
+        <button
+          className={`kanban-tab${tab === "board" ? " active" : ""}`}
+          onClick={() => setTab("board")}
+        >
+          看板
+        </button>
+        <button
+          className={`kanban-tab${tab === "annotations" ? " active" : ""}`}
+          onClick={() => setTab("annotations")}
+        >
+          批注
+          <span className={`count${annotations.length > 0 ? " has" : ""}`}>
+            ({annotations.length})
+          </span>
+        </button>
+      </div>
+
       {tab === "board" ? (
-        <div className="kanban-board">
+        <>
+          <LLMCostBanner
+            llmConfigured={llmConfigured}
+            structurizeEstimate={structurizeEstimate}
+          />
           <PipelineTimeline steps={steps} isStepReady={isStepReady} onRunStep={onRunStep} />
           <ResultsTable
             records={records}
             annotations={annotations}
             onSaveAnnotation={onSaveAnnotation}
             recordJump={recordJump}
+            onLocate={onLocate}
           />
-        </div>
+        </>
       ) : (
         <AnnotationPanel
           annotations={annotations}
@@ -100,6 +133,8 @@ export function PipelineKanban({
           }}
         />
       )}
+
+      <ExtractOverlay visible={anyRunning} steps={steps} />
     </div>
   );
 }
