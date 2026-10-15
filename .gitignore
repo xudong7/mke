@@ -15,5 +15,8 @@ eval/data/predictions.jsonl
 eval/data/_*.jsonl
 eval/report.md
 
+# 本机专属配置
+.claude/settings.local.json
+
 # 系统
 .DS_Store
