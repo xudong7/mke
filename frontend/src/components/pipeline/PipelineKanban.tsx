@@ -23,7 +23,7 @@ interface Props {
   annotations: Annotation[];
   onSaveAnnotation: (
     target: { record_index: number; field?: string | null; value_snapshot?: string | null },
-    note: string,
+    payload: { note: string; corrected_value: string | null; reason: string | null },
   ) => Promise<void>;
   onDeleteAnnotation: (id: string) => Promise<void>;
   onJumpToRecord: (index: number) => void;

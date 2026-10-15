@@ -208,7 +208,14 @@ export async function fetchRunAnnotations(runId: string): Promise<Annotation[]> 
 
 export async function createRunAnnotation(
   runId: string,
-  body: { record_index: number; field?: string | null; note: string; value_snapshot?: string | null },
+  body: {
+    record_index: number;
+    field?: string | null;
+    note: string;
+    value_snapshot?: string | null;
+    corrected_value?: string | null;
+    reason?: string | null;
+  },
 ): Promise<Annotation> {
   const { data } = await api.post<Annotation>(`/runs/${runId}/annotations`, body);
   return data;

@@ -25,7 +25,10 @@ export interface AnnotationTarget {
 interface Props {
   records: ExtractRecord[];
   annotations: Annotation[];
-  onSaveAnnotation: (target: AnnotationTarget, note: string) => Promise<void>;
+  onSaveAnnotation: (
+    target: AnnotationTarget,
+    payload: { note: string; corrected_value: string | null; reason: string | null },
+  ) => Promise<void>;
   recordJump: { index: number; token: number } | null;
   onLocate: (field: string, citations: string[]) => void;
 }
@@ -38,6 +41,8 @@ function cellText(v: unknown): string {
 export function ResultsTable({ records, annotations, onSaveAnnotation, recordJump, onLocate }: Props) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [note, setNote] = useState("");
+  const [correctedValue, setCorrectedValue] = useState("");
+  const [reason, setReason] = useState("");
   const [flashIdx, setFlashIdx] = useState<number | null>(null);
   const [popover, setPopover] = useState<{
     target: AnnotationTarget;
@@ -60,16 +65,24 @@ export function ResultsTable({ records, annotations, onSaveAnnotation, recordJum
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setPopover({ target, anchor: { x: r.left + r.width / 2, y: r.bottom } });
     setNote("");
+    setCorrectedValue("");
+    setReason("");
   };
 
   const closePopover = () => {
     setPopover(null);
     setNote("");
+    setCorrectedValue("");
+    setReason("");
   };
 
   const savePopover = () => {
     if (!popover) return;
-    void onSaveAnnotation(popover.target, note.trim());
+    void onSaveAnnotation(popover.target, {
+      note: note.trim(),
+      corrected_value: correctedValue.trim() || null,
+      reason: reason.trim() || null,
+    });
     closePopover();
   };
 
@@ -121,6 +134,10 @@ export function ResultsTable({ records, annotations, onSaveAnnotation, recordJum
           anchor={popover.anchor}
           note={note}
           onNoteChange={setNote}
+          correctedValue={correctedValue}
+          onCorrectedValueChange={setCorrectedValue}
+          reason={reason}
+          onReasonChange={setReason}
           onSave={savePopover}
           onCancel={closePopover}
         />
