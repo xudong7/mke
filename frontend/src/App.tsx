@@ -182,9 +182,9 @@ export default function App() {
   const handleSaveAnnotation = useCallback(
     async (
       target: { record_index: number; field?: string | null; value_snapshot?: string | null },
-      note: string,
+      payload: { note: string; corrected_value: string | null; reason: string | null },
     ) => {
-      await annotationsApi.add({ ...target, note });
+      await annotationsApi.add({ ...target, ...payload });
     },
     [annotationsApi],
   );

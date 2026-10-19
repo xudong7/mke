@@ -1266,6 +1266,15 @@ body.col-resizing canvas {
   font: inherit;
   resize: vertical;
 }
+/* 修正值 / 原因 两个输入框（任务六） */
+.annotation-editor .annotation-input {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 6px;
+  font: inherit;
+}
 .editor-actions {
   display: flex;
   justify-content: flex-end;

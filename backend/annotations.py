@@ -24,6 +24,12 @@ class RunAnnotationIn(BaseModel):
     field: str | None = None
     note: str = ""
     value_snapshot: str | None = None
+    # 任务六（批注字段扩展）：只增字段，旧批注文件照常读，前端不传就是 None
+    corrected_value: str | None = None
+    reason: str | None = None
+    evidence_span: dict | None = None
+    labeler: str | None = None
+    reviewed_at: str | None = None
 
 
 class RunAnnotation(RunAnnotationIn):
@@ -73,6 +79,11 @@ def create_run_annotation(run_id: str, body: RunAnnotationIn):
         "field": body.field,
         "note": body.note,
         "value_snapshot": body.value_snapshot,
+        "corrected_value": body.corrected_value,
+        "reason": body.reason,
+        "evidence_span": body.evidence_span,
+        "labeler": body.labeler,
+        "reviewed_at": body.reviewed_at,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     with _lock:

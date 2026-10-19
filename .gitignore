@@ -7,7 +7,16 @@ __pycache__/
 .env
 
 # 数据:文献全文与抽取输出(体积大、含版权内容,不纳入版本管理)
-data/
+# 注意写成 /data/ 只匹配仓库根目录，否则 eval/data/ 会被一起忽略（golden 基准需要入库）
+/data/
+
+# 评测：golden.jsonl 与 schema/DESIGN 入库（可复现），预测与报表不入库
+eval/data/predictions.jsonl
+eval/data/_*.jsonl
+eval/report.md
+
+# 本机专属配置
+.claude/settings.local.json
 
 # 系统
 .DS_Store
