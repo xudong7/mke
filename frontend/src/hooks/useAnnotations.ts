@@ -36,6 +36,8 @@ export function useAnnotations(runId: string | null) {
       field?: string | null;
       note: string;
       value_snapshot?: string | null;
+      corrected_value?: string | null;
+      reason?: string | null;
     }) => {
       if (!runId) return;
       const created = await createRunAnnotation(runId, body);

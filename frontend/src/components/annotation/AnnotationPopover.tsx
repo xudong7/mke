@@ -7,18 +7,27 @@ interface Props {
   anchor: { x: number; y: number };
   note: string;
   onNoteChange: (v: string) => void;
+  /** 任务六：人工修正后的值与原因 */
+  correctedValue: string;
+  onCorrectedValueChange: (v: string) => void;
+  reason: string;
+  onReasonChange: (v: string) => void;
   onSave: () => void;
   onCancel: () => void;
 }
 
 const WIDTH = 300;
-const ESTIMATED_HEIGHT = 260;
+const ESTIMATED_HEIGHT = 360;
 
 export function AnnotationPopover({
   target,
   anchor,
   note,
   onNoteChange,
+  correctedValue,
+  onCorrectedValueChange,
+  reason,
+  onReasonChange,
   onSave,
   onCancel,
 }: Props) {
@@ -43,12 +52,23 @@ export function AnnotationPopover({
               <blockquote className="mono">{target.value_snapshot}</blockquote>
             </div>
           )}
+          <input
+            className="annotation-input"
+            value={correctedValue}
+            onChange={(e) => onCorrectedValueChange(e.target.value)}
+            placeholder="修正值（该字段应该是什么）…"
+          />
+          <input
+            className="annotation-input"
+            value={reason}
+            onChange={(e) => onReasonChange(e.target.value)}
+            placeholder="原因（为什么判错：漏抽 / 多抽 / 单位错…）…"
+          />
           <textarea
             value={note}
             onChange={(e) => onNoteChange(e.target.value)}
             placeholder="批注内容（原结果不会被修改）…"
             rows={3}
-            autoFocus
             onKeyDown={(e) => {
               if (e.key === "Escape") onCancel();
             }}
@@ -60,7 +80,7 @@ export function AnnotationPopover({
             <button
               className="btn btn-sm btn-primary"
               onClick={onSave}
-              disabled={!note.trim()}
+              disabled={!note.trim() && !correctedValue.trim()}
             >
               保存批注
             </button>

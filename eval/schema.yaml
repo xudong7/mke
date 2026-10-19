@@ -1,0 +1,289 @@
+# eval/schema.yaml — 评测字段口径
+#
+# 这是 Benchmark 的「尺子刻度」：gold 与模型各自长什么样、怎么归一、怎么比。
+# 任何字段口径的改动都要升 schema_version 并在 eval/DESIGN.md 记录，否则跨版本分数不可比。
+#
+# 定稿依据（2026-10-13 实测）：
+#   gold  : 文献1-100提取标准结果及其解析.xls（BIFF8，需 xlrd），264 条记录 / 100 篇
+#           评测分母 261 条 / 97 篇（文献32/36/46 已排除，详见 DESIGN.md 2.2）
+#   模型  : mke/data/runs/*.json 的 records，18 个基础键 + 3 个 *_结构化 键
+
+meta:
+  schema_version: "0.1.0"
+  updated: "2026-10-13"
+  status: "待 20 篇子集定稿后升 0.2"
+  owner: "eval 主笔"
+  note: "本文件是字段口径的唯一来源，DESIGN.md 只引用不重复定义"
+
+# ---------------------------------------------------------------- 缺失值
+
+missing:
+  canonical: null            # 归一后一律用 null 表示「无此信息」
+  gold_tokens:               # gold 侧这些写法都判为缺失
+    - ""
+    - "—"
+    - "-"
+    - "–"
+    - "null"                 # 字符串 "null"，实测 254 个单元格
+    - "00"                   # 实测仅出现在 盐种类/浓度(9) / 比表面积(2) / 孔径(5)
+    - "n/a"                  # 以下为任务二实现时登记（DESIGN 要求新写法先登记再归一）
+    - "none"
+    - "未提及"
+    - "未给出"
+    - "未报告"
+    - "无"
+  model_tokens:              # 模型侧（core/postprocess.py 统一填 "00"）
+    - "00"
+    - ""
+    - "null"
+    - "—"
+    - "n/a"
+    - "未提及"
+    - "未给出"
+    - "未报告"
+  zero_vs_missing:
+    rule: |
+      数值列里 '00'、裸 '0'、以及解析不出数字的写法，一律判为缺失；
+      带单位的 0 值（如 '0 mg/mL'）判为真值。
+    rationale: |
+      盐种类/浓度 0 mg/mL、比表面积 0 m²/g 在本领域都不是合法观测值；gold 的 00 只出现在数值列。
+      实测 gold 里另有 7 条「比表面积」直接写裸 0（文献4 四条、文献7 一条等），同属占位写法。
+  caution: |
+    gold 记录行里没有出现过的缺失写法（如 "N/A"、"无"）目前不归一；
+    若 golden.py 清洗时遇到新写法，必须在此登记后再归一，不许静默处理。
+
+# ---------------------------------------------------------------- 归一化
+
+normalization:
+  text:
+    - 去除首尾空白，连续空白折叠为单个空格
+    - 全角括号／逗号／冒号统一为半角
+    - 统一小写后再比较（仅用于比较，不改写原值）
+  chem:
+    - 上下标归一：SiO₂→SiO2、m²/g→m2/g、CO₃²⁻→CO3^2-
+    - 温度符号归一：℃ / °C / oC → °C
+    - 范围符归一：– / — / ~ / 〜 → "-"（仅用于数值区间解析）
+  units:
+    - 质量分数：w% / wt% / w/w% / 质量分数 → w%
+    - 长度：nm / 纳米 → nm；Å → 0.1 nm（换算后比）
+    - 比表面积：m²/g / m2/g / m2 · g-1 → m2/g
+
+# ---------------------------------------------------------------- 比较方式
+# compare 取值与 metrics.py 的算子一一对应
+
+comparison_modes:
+  enum_group:      "归一到大类后字符串相等"
+  entity:          "同义词典归一后相等（P123 = Pluronic P123 = EO20PO70EO20）"
+  numeric:         "抽取数值 + 单位，按 tolerances 里的容差比"
+  numeric_set:     "序列字段：gold 的数值全部在预测中找到（带容差）即算命中；预测多出的步骤温度记入样例不扣分"
+  token_set:       "复合字段：gold 的实体/数值 unit token 全部出现在预测中即算命中（召回导向）；预测多出的细节不扣分"
+  loose_text:      "自由描述：gold 关键词覆盖率 ≥ 0.5 即算命中（仅用于产物形态这类字段）"
+  not_evaluated:   "不参与字段指标，只登记"
+
+# ---------------------------------------------------------------- gold 字段
+# 每条记录一个 dict，字段顺序即报表列顺序，与 gold 表头一一对应
+
+fields:
+  - key: 文献编号
+    gold_header: 文献编号
+    model_key: null                # 模型侧对应 paper_id（元信息）
+    type: meta
+    compare: not_evaluated
+    note: "只用于分组，不作为字段指标。归一规则见 DESIGN.md 第 4 节的记录归属"
+
+  - key: 组装方式
+    gold_header: 组装方式
+    model_key: 组装方式
+    type: enum
+    compare: enum_group
+    groups:                        # 归一后的合法取值（gold 实测 61 种写法 → 6 类）
+      - 溶胶-凝胶                  # 含"溶胶-凝胶"/"sol-gel"/"共缩合"
+      - 软模板-碱性                # 含"碱性"/"碱催化"/"NH4OH"/"NaOH"
+      - 软模板-酸性                # 含"酸性"/"HCl"
+      - 软模板-未标酸碱            # "软模板法"/"胶束模板法"/"液晶模板法"等
+      - 硬模板-自模板              # 含"硬模板"/"自模板"/"AAO"/"铸型"
+      - 其他
+    note: "gold 是短标签，模型是整句；必须先归一到大类，否则字符串相等几乎全错"
+
+  - key: 合成溶液体系（体积比）
+    gold_header: 合成溶液体系（体积比）
+    model_key: 溶剂体系
+    type: text
+    compare: token_set
+    extract: "溶剂名集合（H2O/EtOH/BuOH/HCl 溶液…）+ 体积比数值对"
+
+  - key: 酸/碱浓度
+    gold_header: 酸/碱浓度
+    model_key: pH值_酸碱浓度
+    type: text
+    compare: token_set
+    extract: "酸/碱物种名 + 数值 + 单位 + 基准（w% 或 mol/L）；pH 值单独成项"
+
+  - key: 表面活性剂
+    gold_header: 表面活性剂
+    model_key: 表面活性剂种类
+    type: entity
+    compare: entity
+    synonyms:                      # 同义词典雏形，后续并入 kb/schema.json
+      - ["P123", "Pluronic P123", "EO20PO70EO20"]
+      - ["F127", "Pluronic F127", "EO106PO70EO106"]
+      - ["CTAB", "C16TMA", "十六烷基三甲基溴化铵", "C16TAB"]
+      - ["C12TMA", "DTAB", "十二烷基三甲基溴化铵"]
+      - ["F108", "Pluronic F108"]
+      - ["P103", "Pluronic P103"]
+      - ["TMB", "1,3,5-trimethylbenzene", "均三甲苯"]
+
+  - key: 表面活性剂浓度
+    gold_header: 表面活性剂浓度
+    model_key: 表面活性剂浓度
+    type: numeric
+    compare: token_set
+    extract: "数值 + 单位 + 基准（w% / wt% / mol/L / g）"
+    note: "gold 实测 231 条文本 + 7 条裸数值；单位基准不统一，先比数值与基准类型"
+
+  - key: 硅源/浓度
+    gold_header: 硅源/浓度
+    model_key: 硅/钛源种类_浓度
+    type: text
+    compare: token_set
+    extract: "硅/钛源物种名（TEOS/TMOS/Triethoxysilane/硅酸钠…）+ 数值 + 单位 + 基准"
+
+  - key: 盐种类/浓度
+    gold_header: 盐种类/浓度         # 两个 sheet 列名不一致，清洗时统一到本名
+    gold_header_aliases:
+      - "盐种类/浓度（mg/mL）"       # sheet「文献1-7」
+    model_key: 盐种类_浓度
+    type: text
+    compare: token_set
+    extract: "盐物种名 + 数值 + 单位 + 基准；'未提及额外盐' 与 null 等价"
+
+  - key: 合成温度
+    gold_header: 合成温度
+    model_key: 合成温度
+    structured_key: 合成温度_结构化
+    type: numeric
+    compare: numeric_set
+    extract: "正则抽取全部温度值（°C/℃），成集合后比"
+    note: |
+      gold 与模型多是长流程文本（如"80 °C老化4 h；450 °C焙烧"），
+      不做字符串比；只比温度值集合，容差见 tolerances.temperature。
+
+  - key: 产物介孔结构
+    gold_header: 产物介孔结构
+    model_key: 介孔结构
+    type: enum
+    compare: enum_group
+    groups:                        # gold 实测 199 种写法 → 7 类
+      - 2D 六方                    # hexagonal / p6mm / MCM-41 / SBA-15
+      - 3D 立方                    # cubic / Im3m / Ia3d / SBA-16 / MCM-48 / KIT-6
+      - 3D 六方                    # 3D hexagonal
+      - 蠕虫状                     # wormlike
+      - 层状                       # lamellar
+      - 无序                       # disordered / 无序
+      - 非介孔                     # 非介孔 / non-porous
+      - 其他
+
+  - key: 比表面积(m²/g)
+    gold_header: 比表面积(m²/g)
+    model_key: 比表面积
+    structured_key: 比表面积_结构化
+    type: numeric
+    unit: "m2/g"
+    compare: numeric
+    extract: "首个数值 + 单位；'>1000'、'≈1000' 记为 1000 并在报告里标 approx"
+    note: "gold 实测 209 条纯数值 / 6 条带前缀 / 49 条缺失"
+
+  - key: 孔径分布(nm)
+    gold_header: 孔径分布(nm)
+    model_key: 孔径
+    structured_key: 孔径_结构化
+    type: numeric
+    unit: "nm"
+    compare: numeric
+    extract: "首个数值 + 单位；'ca. 3'、'平均5.9' 取数值并标 approx"
+    note: "gold 实测 190 条纯数值 / 37 条带前后缀 / 37 条缺失"
+
+  - key: 产物形态
+    gold_header: 产物形态
+    model_key: 产物形态
+    type: text
+    compare: loose_text
+    extract: "形态关键词（球/rod/膜/粉体/纤维/颗粒…）+ 尺寸"
+    note: "自由描述，199 种写法；只做宽松命中，分数单独列，不与枚举字段混算"
+
+  - key: 备注
+    gold_header: 备注
+    model_key: null
+    type: text
+    compare: not_evaluated
+    note: |
+      gold 的「备注」与「计算过程」两类注释行合并到这里，作为记录级 note。
+      闭环阶段的经验库会消费它；本阶段的指标不评它。
+
+# ---------------------------------------------------------------- 模型独有键
+
+model_only:
+  - key: 来源文件
+    usage: meta
+  - key: 分析类型
+    usage: "分层/诊断用，但注意它是被评对象自己产出的标签，不能直接当分层依据（见 DESIGN.md 第 6 节）"
+  - key: 其他变量
+    usage: "无 gold 对应，登记后只做定性抽检"
+  - key: 来源文本片段
+    usage: "参考资料，不评"
+  - key: 推理说明
+    usage: "不评（闭环阶段的经验库素材）"
+  - key: 字段引用
+    usage: "可选指标：引用是否落在同段或相邻段（依赖段级 locator，做不出来就不做）"
+
+# ---------------------------------------------------------------- 结构化字段
+
+structured:
+  canonical_shape:                 # 实施方案要求统一的形态
+    数值: number
+    单位: string
+    样品: string | null
+    原文: string
+  model_actual: |
+    实测 比表面积_结构化 / 孔径_结构化 用的是 {"数值","单位","方法"|"类型","样品","原文"}，
+    比 canonical 多一个自由字段，评测只读 数值/单位/样品/原文，多余键忽略。
+  temperature_shape: |
+    合成温度_结构化 是另一种形态（阶段/温度值/温度单位/时间值/时间单位/操作/原文），
+    属工艺步骤表，不套 canonical；温度评测走 fields.合成温度 的正则抽取。
+  coverage_rule: |
+    三个 *_结构化 字段实测覆盖率 36/36/34（共 64 条），远低于 100%。
+    凡数值类指标，报表必须同时给出「该字段有值记录数 / 该字段可评记录数」，
+    缺一列都会把"没抽出来"误读成"抽错了"。
+
+# ---------------------------------------------------------------- 容差
+
+tolerances:
+  specific_surface_area: "max(5%, 5 m2/g)"     # 比表面积
+  pore_size:             "max(10%, 0.2 nm)"    # 孔径
+  temperature:           "±5 °C"               # 温度集合比较
+  concentration:         "±5% 相对误差"         # 各类浓度，仅当基准一致时才比
+
+# ---------------------------------------------------------------- 分层
+
+strata:
+  primary: "是否含表（有/无）"           # 由 parse_report.json 的 tables 非空判定
+  secondary: "记录数（单记录/多记录）"    # 由 golden.jsonl 统计
+  tertiary: "文献类型（软模板/复合/硬模板）"
+  tertiary_source: |
+    优先"人工对 20 篇子集打标"，其次用 gold 组装方式关键词近似。
+    不用模型 route 输出的「分析类型」——那是被评对象的自述标签，拿它分层等于自己给自己评分。
+
+# ---------------------------------------------------------------- 判定的粒度
+
+granularity:
+  record: "一条 gold 记录 = 一个样品（同一篇论文可有多个）"
+  field: "记录内单个字段"
+  unit_of_credit: |
+    字段级正确 = 该字段归一后相等（数值类按容差）。
+    两边都为 null 记 TP 还是跳过，由 DESIGN.md 第 5 节写死，不在本文件里改。
+
+known_gaps:
+  - gold 无「样品编号」列 → 记录对齐不能拿它当主键（见 DESIGN.md 第 4 节）
+  - gold 无「文献类型」标注 → 分层需要人工打标或用近似规则
+  - 比表面积/孔径 的 gold 大量为 null，可评样本很少 → 必须报覆盖率
+  - 单位基准不统一（w% / wt% / mol/L / g 混用）→ 浓度类字段目前只能做宽松比

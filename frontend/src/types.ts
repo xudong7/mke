@@ -66,6 +66,12 @@ export interface Annotation {
   field?: string | null;
   note: string;
   value_snapshot?: string | null;
+  /** 任务六：人工修正后的值 —— 清洗成标准条目的输入 */
+  corrected_value?: string | null;
+  reason?: string | null;
+  evidence_span?: Record<string, unknown> | null;
+  labeler?: string | null;
+  reviewed_at?: string | null;
   created_at: string;
 }
 

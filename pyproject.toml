@@ -13,6 +13,8 @@ dependencies = [
     "uvicorn[standard]>=0.30.0",
     "PyMuPDF>=1.24.0",
     "python-multipart>=0.0.9",
+    "pymupdf-layout>=1.28.2",
+    "pdfplumber>=0.11.10",
 ]
 
 [tool.uv]

@@ -14,19 +14,41 @@
 
 ## 快速开始
 
-依赖管理使用 [uv](https://docs.astral.sh/uv/)(Python ≥ 3.10):
+前置条件:
+
+- Python ≥ 3.10 与 [uv](https://docs.astral.sh/uv/)(Python 依赖管理)
+- [Node.js](https://nodejs.org/)(含 npm, 用于构建 Web 前端)
+- Windows 提示: 请在 PowerShell 里逐行执行下面的命令; 系统自带的 Windows PowerShell 5.1 **不支持 `&&`**, 需要串联命令时用 `;`, 或分多行写
 
 ```bash
-# 1. 安装依赖(自动创建 .venv 与 uv.lock)
+# 1. 获取代码(默认分支 main; 最新实现都在 dev)
+git clone https://github.com/xudong7/mke.git
+cd mke
+git checkout dev
+
+# 2. 安装 Python 依赖(按 uv.lock 创建 .venv)
 uv sync
 
-# 2. 配置环境变量(密钥不会入库)
-cp .env.example .env
+# 3. 配置环境变量( .env 已被 git 忽略, 不会提交 )
+cp .env.example .env        # PowerShell 等价写法: Copy-Item .env.example .env
 #   编辑 .env,填入 OPENAI_API_KEY
 
-# 3. 运行批量抽取
+# 4. 一键启动 Web 界面(首次会自动 npm install 并构建前端, 就绪后自动开浏览器)
+#   Windows 也可以直接双击 start.bat
+uv run python run.py
+```
+
+只跑命令行批量抽取(不需要前端):
+
+```bash
 uv run python main.py
 ```
+
+关于刚克隆下来的仓库:
+
+- `data/`(文献全文与历史结果)和 `.env` 都不纳入版本管理, 所以克隆后是空的: 页面照常打开, 可在界面上传 PDF(本地解析, 不消耗 token)。
+- 不配 `OPENAI_API_KEY` 也能打开页面、上传文献; 但调用 LLM 的步骤(路由/抽取/引用/结构化)会报错。
+- 端口默认 8000, 冲突时用环境变量 `MKE_PORT` 换一个。
 
 ## 配置说明
 
@@ -64,22 +86,30 @@ uv run python main.py
 **运行历史**:每次执行流水线自动保存到后端(`data/runs/`),刷新/跳转不丢失;可从左侧历史选择查看任意一次运行结果,或一键重新运行(新开记录)。
 
 ```bash
+# 0. 一键方式(装依赖 + 构建前端 + 启动 + 开浏览器)
+uv run python run.py
+
 # 1. 启动后端(FastAPI,默认 :8000)
 uv run uvicorn backend.main:app --reload --port 8000
 
 # 2a. 开发模式(前端热更新,:5173, /api 自动代理)
-cd frontend && npm install && npm run dev
+cd frontend; npm install; npm run dev
 
 # 2b. 生产模式(构建产物由后端单端口托管,:8000)
-cd frontend && npm run build && open http://localhost:8000
+cd frontend; npm run build
+# 然后访问 http://localhost:8000
 ```
+
+> `&&` 只在 PowerShell 7+ / bash 里可用, Windows 自带的 PowerShell 5.1 请改用 `;`。
 
 > ②–⑤ 步调用 LLM,消耗 API token;PDF 解析为纯本地计算。
 
 ## 目录结构
 
 ```
-demo/
+mke/
+├── run.py                   # 一键启动 Web 界面(自动装前端依赖/构建/开浏览器)
+├── start.bat                # Windows 双击启动(等价于 uv run python run.py)
 ├── main.py                  # 入口:批量处理 → 规范化 → 导出(CLI)
 ├── config.py                # 路径与模型配置(密钥走环境变量)
 ├── core/
@@ -122,3 +152,10 @@ demo/
 - `knowledge_agent.py` 已实现但未接入管线(总结可复用的合成规律与结构-性能关系)
 - `router` / `citation_agent` 对输入文本有长度截断(4000/8000 字符),长文献的方法与表格段可能丢失
 - 每次 LLM 调用无重试机制,偶发解析失败会静默丢弃整篇文献
+
+## 常见问题
+
+- 终端报「标记"&&"不是此版本中的有效语句分隔符」: 你用的是 Windows PowerShell 5.1, 把 `&&` 换成 `;`, 或一行一条命令。
+- 终端报 `'tsc' is not recognized` 或 `npm.cmd ... returned non-zero exit status 1`: 前端依赖没装, 到 `frontend/` 里执行 `npm install`; `uv run python run.py` 会自动补这一步。
+- 终端报「未找到 npm」或 `FileNotFoundError`: 机器上还没装 Node.js。
+- 编辑器提示「无法解析导入 "pandas"」(reportMissingImports): 只是类型检查器没选对解释器, 不影响运行。选中项目的 `.venv`, 或在仓库根放 `pyrightconfig.json`: `{"venvPath": ".", "venv": ".venv"}`。
